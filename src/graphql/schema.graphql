@@ -3,49 +3,50 @@
 
 
 type Collection {
-  average_price: Float
-  banner_image_url: String
+  averagePrice: Float
+  bannerImageUrl: String
   description: String
-  discord_url: String
-  external_url: String
-  floor_price: Float
-  image_url: String
-  instagram_username: String
-  large_image_url: String
-  market_cap: Float
+  discordUrl: String
+  externalUrl: String
+  floorPrice: Float
+  imageUrl: String
+  instagramUsername: String
+  largeImageUrl: String
+  marketCap: Float
   name: String
-  num_owners: Int
-  num_reports: Int
-  one_day_average_price: Float
-  one_day_change: Float
-  one_day_sales: Int
-  one_day_volume: Float
-  seven_day_average_price: Float
-  seven_day_change: Float
-  seven_day_sales: Int
-  seven_day_volume: Float
+  numOwners: Int
+  numReports: Int
+  oneDayAveragePrice: Float
+  oneDayChange: Float
+  oneDaySales: Int
+  oneDayVolume: Float
+  sevenDayAveragePrice: Float
+  sevenDayChange: Float
+  sevenDaySales: Int
+  sevenDayVolume: Float
   slug: String
-  thirty_day_average_price: Float
-  thirty_day_change: Float
-  thirty_day_sales: Int
-  thirty_day_volume: Float
-  total_sales: Int
-  total_supply: Int
-  total_volume: Float
-  twitter_username: String
+  thirtyDayAveragePrice: Float
+  thirtyDayChange: Float
+  thirtyDaySales: Int
+  thirtyDayVolume: Float
+  totalSales: Int
+  totalSupply: Int
+  totalVolume: Float
+  twitterUsername: String
 }
 
 type Query {
+  collection(slug: String!): Collection
   collections: [Collection]
   upcoming: [Upcoming]
 }
 
 type Upcoming {
   description: String
-  discord_url: String
-  external_url: String
+  discordUrl: String
+  externalUrl: String
   name: String
   price: Float
   supply: Int
-  twitter_username: String
+  twitterUsername: String
 }

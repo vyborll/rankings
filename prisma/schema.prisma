@@ -20,51 +20,82 @@ model Collections {
 }
 
 model Collection {
-  id                       String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  slug                     String   @unique
-  name                     String
-  description              String
-  banner_image_url         String?
-  image_url                String?
-  large_image_url          String?
-  discord_url              String?
-  external_url             String?
-  twitter_username         String?
-  instagram_username       String?
-  one_day_volume           Float
-  one_day_change           Float
-  one_day_sales            Int
-  one_day_average_price    Float
-  seven_day_volume         Float
-  seven_day_change         Float
-  seven_day_sales          Int
-  seven_day_average_price  Float
-  thirty_day_volume        Float
-  thirty_day_change        Float
-  thirty_day_sales         Int
-  thirty_day_average_price Float
-  total_volume             Float
-  total_sales              Int
-  total_supply             Int
-  num_owners               Int
-  average_price            Float
-  num_reports              Int
-  market_cap               Float
-  floor_price              Float
-  updatedAt                DateTime @updatedAt
-  createdAt                DateTime @default(now())
+  id                    String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  slug                  String   @unique
+  contractAddress       String
+  name                  String
+  description           String
+  bannerImageUrl        String?
+  imageUrl              String?
+  largeImageUrl         String?
+  discordUrl            String?
+  externalUrl           String?
+  twitterUsername       String?
+  instagramUsername     String?
+  oneDayVolume          Float
+  oneDayChange          Float
+  oneDaySales           Int
+  oneDayAveragePrice    Float
+  sevenDayVolume        Float
+  sevenDayChange        Float
+  sevenDaySales         Int
+  sevenDayAveragePrice  Float
+  thirtyDayVolume       Float
+  thirtyDayChange       Float
+  thirtyDaySales        Int
+  thirtyDayAveragePrice Float
+  totalVolume           Float
+  totalSales            Int
+  totalSupply           Int
+  numOwners             Int
+  averagePrice          Float
+  numReports            Int
+  marketCap             Float
+  floorPrice            Float
+  updatedAt             DateTime @updatedAt
+  createdAt             DateTime @default(now())
+  Asset                 Asset[]
+  Trait                 Trait[]
 }
 
 model Upcoming {
-  id               String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  name             String
-  description      String
-  price            Float
-  supply           Int
-  twitter_username String?
-  discord_url      String?
-  external_url     String?
-  release_date     DateTime
-  updatedAt        DateTime @updatedAt
-  createdAt        DateTime @default(now())
+  id              String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  name            String
+  description     String
+  price           Float
+  supply          Int
+  twitterUsername String?
+  discordUrl      String?
+  externalUrl     String?
+  releaseDate     DateTime
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}
+
+model Asset {
+  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  assetSlug    String     @unique
+  tokenId      String
+  name         String
+  imageUrl     String
+  collectionId String     @db.ObjectId
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  traitIDs     String[]   @db.Array(String)
+  traits       Trait[]    @relation(fields: [traitIDs])
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+}
+
+model Trait {
+  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  slug         String     @unique
+  traitType    String
+  traitCount   Int
+  value        String
+  collectionId String     @db.ObjectId
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  assetIDs     String[]   @db.Array(String)
+  assets       Asset[]    @relation(fields: [assetIDs])
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
 }

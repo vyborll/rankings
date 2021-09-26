@@ -2,7 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+	@variants responsive {
+		/* Chrome, Safari and Opera */
+		.no-scrollbar::-webkit-scrollbar {
+			display: none;
+		}
+
+		.no-scrollbar {
+			-ms-overflow-style: none; /* IE and Edge */
+			scrollbar-width: none; /* Firefox */
+		}
+	}
+}
+
 body {
-  @apply bg-dark-900 text-white antialiased;
-  font-family: 'Poppins', sans-serif;
+	@apply bg-dark-900 text-white antialiased;
+	font-family: 'Inter', sans-serif;
+}
+
+.ribbon {
+	position: absolute;
+	top: 0;
+	right: 0;
+	margin-top: 18px;
+	margin-right: -42px;
+	-ms-transform: rotate(45deg); /* IE 9 */
+	-webkit-transform: rotate(45deg); /* Safari prior 9.0 */
+	transform: rotate(45deg); /* Standard syntax */
 }
