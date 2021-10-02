@@ -20,8 +20,8 @@ model Collections {
 }
 
 model Collection {
-  id                    String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  slug                  String   @unique
+  id                    String      @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  slug                  String      @unique
   contractAddress       String
   name                  String
   description           String
@@ -52,10 +52,10 @@ model Collection {
   numReports            Int
   marketCap             Float
   floorPrice            Float
-  updatedAt             DateTime @updatedAt
-  createdAt             DateTime @default(now())
-  Asset                 Asset[]
-  Trait                 Trait[]
+  updatedAt             DateTime    @updatedAt
+  createdAt             DateTime    @default(now())
+  asset                 Asset[]
+  attribute             Attribute[]
 }
 
 model Upcoming {
@@ -74,28 +74,45 @@ model Upcoming {
 
 model Asset {
   id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  assetSlug    String     @unique
+  assetId      String     @unique
   tokenId      String
   name         String
   imageUrl     String
   collectionId String     @db.ObjectId
   collection   Collection @relation(fields: [collectionId], references: [id])
-  traitIDs     String[]   @db.Array(String)
-  traits       Trait[]    @relation(fields: [traitIDs])
-  updatedAt    DateTime   @updatedAt
-  createdAt    DateTime   @default(now())
+  traitIds     String[]   @db.Array(String)
+  traits       Trait[]    @relation(fields: [traitIds])
+  Score        Score[]
+}
+
+model Attribute {
+  id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  attributeId    String     @unique
+  attributeType  String
+  attributeCount Int?       @default(0)
+  collectionId   String     @db.ObjectId
+  collection     Collection @relation(fields: [collectionId], references: [id])
+  trait          Trait[]
 }
 
 model Trait {
-  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  slug         String     @unique
-  traitType    String
-  traitCount   Int
-  value        String
-  collectionId String     @db.ObjectId
-  collection   Collection @relation(fields: [collectionId], references: [id])
-  assetIDs     String[]   @db.Array(String)
-  assets       Asset[]    @relation(fields: [assetIDs])
-  updatedAt    DateTime   @updatedAt
-  createdAt    DateTime   @default(now())
+  id          String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  traitId     String    @unique
+  traitType   String
+  traitCount  Int
+  percentile  Float?
+  rarityScore Float?
+  attributeId String    @db.ObjectId
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  assetIds    String[]  @db.Array(String)
+  assets      Asset[]   @relation(fields: [assetIds])
+}
+
+model Score {
+  id          String @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  type        String
+  rarityScore Float
+  rarityRank  Int
+  assetId     String @db.ObjectId
+  asset       Asset  @relation(fields: [assetId], references: [id])
 }

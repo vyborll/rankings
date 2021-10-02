@@ -2,6 +2,13 @@
 ### Do not make changes to this file directly
 
 
+type Asset {
+  imageUrl: String
+  name: String
+  tokenId: String
+  traits: [Trait]
+}
+
 type Collection {
   averagePrice: Float
   bannerImageUrl: String
@@ -36,9 +43,16 @@ type Collection {
 }
 
 type Query {
+  assets(slug: String!, traits: Boolean): [Asset]
   collection(slug: String!): Collection
   collections: [Collection]
   upcoming: [Upcoming]
+}
+
+type Trait {
+  traitCount: Int
+  traitType: String
+  value: String
 }
 
 type Upcoming {
