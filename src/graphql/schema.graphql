@@ -9,9 +9,14 @@ type Asset {
   traits: [Trait]
 }
 
+type Attribute {
+  attributeType: String
+}
+
 type Collection {
   averagePrice: Float
   bannerImageUrl: String
+  contractAddress: String
   description: String
   discordUrl: String
   externalUrl: String
@@ -43,16 +48,26 @@ type Collection {
 }
 
 type Query {
-  assets(slug: String!, traits: Boolean): [Asset]
+  asset(slug: String!, tokenId: Int!): Score
+  assets(page: Int!, slug: String!, take: Int!): [Score]
   collection(slug: String!): Collection
   collections: [Collection]
   upcoming: [Upcoming]
 }
 
+type Score {
+  asset: Asset
+  rarityRank: Int
+  rarityScore: Float
+  type: String
+}
+
 type Trait {
+  attribute: Attribute
+  percentile: Float
+  rarityScore: Float
   traitCount: Int
   traitType: String
-  value: String
 }
 
 type Upcoming {

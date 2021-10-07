@@ -3,6 +3,9 @@ import Router from 'next/router';
 import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 import NProgress from 'nprogress';
 import { SkeletonTheme } from 'react-loading-skeleton';
+import { StoreProvider } from 'easy-peasy'
+
+import store from '@root/store';
 
 export const client = new ApolloClient({
 	uri: 'http://localhost:3000/api/graphql',
@@ -20,11 +23,13 @@ import 'nprogress/nprogress.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
 	return (
-		<ApolloProvider client={client}>
-			<SkeletonTheme color="#95959a">
-				<Component {...pageProps} />
-			</SkeletonTheme>
-		</ApolloProvider>
+		<StoreProvider store={store}>
+			<ApolloProvider client={client}>
+				<SkeletonTheme color="#95959a">
+					<Component {...pageProps} />
+				</SkeletonTheme>
+			</ApolloProvider>
+		</StoreProvider>
 	);
 }
 export default MyApp;

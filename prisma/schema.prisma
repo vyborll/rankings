@@ -73,16 +73,18 @@ model Upcoming {
 }
 
 model Asset {
-  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  assetId      String     @unique
-  tokenId      String
-  name         String
-  imageUrl     String
-  collectionId String     @db.ObjectId
-  collection   Collection @relation(fields: [collectionId], references: [id])
-  traitIds     String[]   @db.Array(String)
-  traits       Trait[]    @relation(fields: [traitIds])
-  Score        Score[]
+  id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  assetId        String     @unique
+  tokenId        String
+  name           String
+  imageUrl       String
+  attributeCount Int
+  attributeScore Float?
+  collectionId   String     @db.ObjectId
+  collection     Collection @relation(fields: [collectionId], references: [id])
+  traitIds       String[]   @db.Array(String)
+  traits         Trait[]    @relation(fields: [traitIds])
+  score          Score[]
 }
 
 model Attribute {
@@ -110,6 +112,7 @@ model Trait {
 
 model Score {
   id          String @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  scoreId     String @unique
   type        String
   rarityScore Float
   rarityRank  Int

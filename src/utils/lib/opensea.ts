@@ -4,227 +4,214 @@ import _ from 'lodash';
 import prisma from '@root/utils/lib/prisma';
 
 class OpenSea {
-  BROWSER: puppeteer.Browser | null;
+	BROWSER: puppeteer.Browser | null;
 
-  constructor() {
-    this.BROWSER = null;
-  }
+	constructor() {
+		this.BROWSER = null;
+	}
 
-  async getAssets(slug: string) {
-    console.log(slug);
-    if (!slug) throw new Error('Invalid Slug');
+	async getAssets(slug: string) {
+		console.log(slug);
+		if (!slug) throw new Error('Invalid Slug');
 
-    const collection = await prisma.collection.findUnique({
-      where: {
-        slug,
-      },
-      include: {
-        attribute: {
-          include: {
-            trait: true,
-          },
-        },
-      },
-    });
+		const collection = await prisma.collection.findUnique({
+			where: {
+				slug,
+			},
+			include: {
+				attribute: {
+					include: {
+						trait: true,
+					},
+				},
+			},
+		});
 
-    if (!collection) throw new Error('No collection was found');
+		if (!collection) throw new Error('No collection was found');
 
-    if (!this.BROWSER) {
-      this.BROWSER = await puppeteer.launch({ headless: false, devtools: true });
-    }
+		if (!this.BROWSER) {
+			this.BROWSER = await puppeteer.launch({ headless: false, devtools: true });
+		}
 
-    const page = await this.BROWSER.newPage();
-    await page.goto('https://opensea.io', {
-      waitUntil: 'networkidle2',
-    });
+		const page = await this.BROWSER.newPage();
+		await page.goto('https://opensea.io', {
+			waitUntil: 'networkidle2',
+		});
 
-    // const pages = Math.ceil(collection.totalSupply / 100);
-    const pages = 1;
-    const query = await this.getAssetsQuery();
-    let currentPage: number = 1;
-    let cursor = '';
+		const pages = Math.ceil(collection.totalSupply / 100);
+		const query = await this.getAssetsQuery();
+		let currentPage: number = 1;
+		let cursor = '';
 
-    const attributeTraitCount: any = {};
-    const traitCountType: any = {};
-    const transactions: any[] = [];
+		const attributeTraitList: { key: number; id: string }[] = [];
+		const traitCountType: any = {};
+		const transactions: any[] = [];
 
-    while (currentPage <= pages) {
-      console.log(`Page: ${currentPage}`);
-      console.log(cursor);
-      let data: any;
+		while (currentPage <= pages) {
+			console.log(`Page: ${currentPage}`);
+			console.log(cursor);
+			let data: any;
 
-      await new Promise(async (resolve) => {
-        setTimeout(async () => {
-          data = await this.sendRequest(page, query, [collection.slug], cursor);
-          cursor = data.data.search.pageInfo.endCursor;
-          resolve(true);
-        }, 5000);
-      });
+			await new Promise(async (resolve) => {
+				setTimeout(async () => {
+					data = await this.sendRequest(page, query, [collection.slug], cursor);
+					cursor = data.data.search.pageInfo.endCursor;
+					resolve(true);
+				}, 6000);
+			});
 
-      await Promise.all(
-        data.data.search.edges.map(async (asset: any) => {
-          const tokenId = asset.node.asset.tokenId;
-          const name = asset.node.asset.name ?? `${collection?.name} #${tokenId}`;
-          const thisAssetTraits: string[] = [];
-          let thisAssetTraitsCount: number = 0;
+			await Promise.all(
+				data.data.search.edges.map(async (asset: any) => {
+					const tokenId = asset.node.asset.tokenId;
+					const name = asset.node.asset.name ?? `${collection?.name} #${tokenId}`;
+					const thisAssetTraits: string[] = [];
+					let thisAssetTraitsCount: number = 0;
 
-          await Promise.all(
-            collection.attribute.map(async (attr) => {
-              const assetHasAttribute = asset.node.asset.traits.edges.find((t: any) => t.node.traitType === attr.attributeType);
+					await Promise.all(
+						collection.attribute.map(async (attr) => {
+							const assetHasAttribute = asset.node.asset.traits.edges.find((t: any) => t.node.traitType === attr.attributeType);
 
-              if (assetHasAttribute) {
-                const assetHasTrait = attr.trait.find((trait) => trait.traitType === assetHasAttribute.node.value);
-                assetHasTrait ? thisAssetTraits.push(assetHasTrait.id) : null;
-                thisAssetTraitsCount += 1;
-              } else {
-                const assetNoneTrait = attr.trait.find((trait) => trait.traitType === 'None');
-                assetNoneTrait ? thisAssetTraits.push(assetNoneTrait.id) : null;
-              }
-            })
-          );
+							if (assetHasAttribute) {
+								const assetHasTrait = attr.trait.find((trait) => trait.traitType === assetHasAttribute.node.value);
+								assetHasTrait ? thisAssetTraits.push(assetHasTrait.id) : null;
+								thisAssetTraitsCount += 1;
+							} else {
+								const assetNoneTrait = attr.trait.find((trait) => trait.traitType === 'None');
+								assetNoneTrait ? thisAssetTraits.push(assetNoneTrait.id) : null;
+							}
+						}),
+					);
 
-          // Keep Track of the total attribute counts
-          if (!traitCountType.hasOwnProperty(thisAssetTraitsCount)) {
-            traitCountType[thisAssetTraitsCount] = 1;
-          } else {
-            traitCountType[thisAssetTraitsCount] = traitCountType[thisAssetTraitsCount] + 1;
-          }
+					// Keep Track of the total attribute counts
+					if (!traitCountType.hasOwnProperty(thisAssetTraitsCount)) {
+						traitCountType[thisAssetTraitsCount] = 1;
+					} else {
+						traitCountType[thisAssetTraitsCount] = traitCountType[thisAssetTraitsCount] + 1;
+					}
 
-          if (!attributeTraitCount.hasOwnProperty(thisAssetTraitsCount)) {
-            attributeTraitCount[thisAssetTraitsCount] = 0 + 1;
-          } else {
-            attributeTraitCount[thisAssetTraitsCount] = attributeTraitCount[thisAssetTraitsCount] + 1;
-          }
+					console.log(`${name} - has ${thisAssetTraitsCount} Attributes`);
 
-          const attributeExist = collection.attribute.find((a) => a.attributeType === "Attribute Count");
-          if (attributeExist) {
-            const traitExist = attributeExist.trait.find((t) => t.traitType === `${thisAssetTraitsCount}`);
-            if (!traitExist) {
-              await prisma.trait.upsert({
-                where: { traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}` },
-                update: {},
-                create: {
-                  traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}`,
-                  traitType: `${thisAssetTraitsCount}`,
-                  traitCount: 1,
-                  attributeId: attributeExist.id
-                }
-              })
-            }
-            
-            if (traitExist) {
-              console.log(`Trait found - ${traitExist.traitType}`);
-            }
-          }
+					// const attributeExist = collection.attribute.find((a) => a.attributeType === 'Attribute Count');
+					// if (attributeExist) {
+					// 	const traitExist = attributeExist.trait.find((t) => t.traitType === `${thisAssetTraitsCount}`);
+					// 	if (!traitExist) {
+					// 		if (!attributeTraitList.hasOwnProperty(`${thisAssetTraitsCount}`)) {
+					// 			// Create and save trait Id for other assets
+					// 			const createdTrait = await prisma.trait.upsert({
+					// 				where: { traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}` },
+					// 				update: {},
+					// 				create: {
+					// 					traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}`,
+					// 					traitType: `${thisAssetTraitsCount}`,
+					// 					traitCount: 1,
+					// 					attributeId: attributeExist.id,
+					// 				},
+					// 			});
 
-          if (!attributeTraitCount.hasOwnProperty(thisAssetTraitsCount)) {            
-            const traitAttributeCount = await prisma.trait.upsert({
-              where: `${collection?.slug}_Attributes_${thisAssetTraitsCount}`,
-              update: {},
-              create: {
-                traitId: `${collection?.slug}_Attributes_${thisAssetTraitsCount}`,
-                traitType: `${thisAssetTraitsCount}`,
-                traitCount: 1,
-                attributeId: 
-              }
-            });
+					// 			attributeTraitList[thisAssetTraitsCount] = createdTrait.id;
+					// 			thisAssetTraits.push(createdTrait.id);
+					// 		} else {
+					// 			thisAssetTraits.push(attributeTraitList[thisAssetTraitsCount]);
+					// 		}
+					// 	} else {
+					// 		console.log(`Trait Found - ${traitExist.traitType}`);
+					// 		thisAssetTraits.push(attributeTraitList[thisAssetTraitsCount]);
+					// 	}
+					// }
 
-            attributeTraitCount[thisAssetTraitsCount] = traitAttributeCount.id;
-          }
+					// const doesAttributeExist = collection.attribute.find((a) => a.attributeType === 'Attribute Count');
+					// if (doesAttributeExist) {
+					//   const doesTraitExist = doesAttributeExist.trait.find((t) => t.traitType === `${thisAssetTraitsCount}`);
+					//   if (doesTraitExist) {
+					//     thisAssetTraits.push(doesTraitExist.id);
+					//   } else {
+					//     const createTrait = await prisma.trait.upsert({
+					//       where: { traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}` },
+					//       update: {},
+					//       create: {
+					//         traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}`,
+					//         traitType: `${thisAssetTraitsCount}`,
+					//         traitCount: 1,
+					//         attributeId: doesAttributeExist.id,
+					//       },
+					//     });
 
-          // const doesAttributeExist = collection.attribute.find((a) => a.attributeType === 'Attribute Count');
-          // if (doesAttributeExist) {
-          //   const doesTraitExist = doesAttributeExist.trait.find((t) => t.traitType === `${thisAssetTraitsCount}`);
-          //   if (doesTraitExist) {
-          //     thisAssetTraits.push(doesTraitExist.id);
-          //   } else {
-          //     const createTrait = await prisma.trait.upsert({
-          //       where: { traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}` },
-          //       update: {},
-          //       create: {
-          //         traitId: `${collection.slug}_Attributes_${thisAssetTraitsCount}`,
-          //         traitType: `${thisAssetTraitsCount}`,
-          //         traitCount: 1,
-          //         attributeId: doesAttributeExist.id,
-          //       },
-          //     });
+					//     thisAssetTraits.push(createTrait.id);
+					//   }
+					// }
 
-          //     thisAssetTraits.push(createTrait.id);
-          //   }
-          // }
+					// Save the total attribute count id
+					// if (!attributeTraitCount.hasOwnProperty(thisAssetTraitsCount)) {
+					//   const attributeCount = await prisma.trait.upsert({
+					//     where: { traitId: `${collection.slug}_Attribute_${thisAssetTraitsCount}` },
+					//     update: {},
+					//     create: {
+					//       traitId: `${collection.slug}_Attribute_${thisAssetTraitsCount}`,
+					//       traitType: `${thisAssetTraitsCount}`
+					//       traitCount: 1,
+					//     }
+					//   })
+					// }
 
-          // Save the total attribute count id
-          // if (!attributeTraitCount.hasOwnProperty(thisAssetTraitsCount)) {
-          //   const attributeCount = await prisma.trait.upsert({
-          //     where: { traitId: `${collection.slug}_Attribute_${thisAssetTraitsCount}` },
-          //     update: {},
-          //     create: {
-          //       traitId: `${collection.slug}_Attribute_${thisAssetTraitsCount}`,
-          //       traitType: `${thisAssetTraitsCount}`
-          //       traitCount: 1,
-          //     }
-          //   })
-          // }
+					transactions.push(
+						prisma.asset.upsert({
+							where: { assetId: `${collection.slug}_${tokenId}` },
+							update: {},
+							create: {
+								assetId: `${collection.slug}_${tokenId}`,
+								tokenId,
+								name: name ?? `${collection.name} #${tokenId}`,
+								imageUrl: asset.node.asset.imageUrl,
+								collectionId: collection.id,
+								traitIds: thisAssetTraits,
+								attributeCount: thisAssetTraitsCount
+							},
+						}),
+					);
+				}),
+			);
 
-          console.log(traitCountType);
-          console.log(attributeTraitCount);
+			console.log(traitCountType);
 
-          // transactions.push(
-          //   prisma.asset.upsert({
-          //     where: { assetId: `${collection.slug}_${tokenId}` },
-          //     update: {},
-          //     create: {
-          //       assetId: `${collection.slug}_${tokenId}`,
-          //       tokenId,
-          //       name,
-          //       imageUrl: asset.node.asset.imageUrl,
-          //       collectionId: collection.id,
-          //       traitIds: thisAssetTraits,
-          //     },
-          //   })
-          // );
-        })
-      );
+			currentPage += 1;
+		}
 
-      currentPage += 1;
-    }
+		const chunks = this.chunkArray(transactions, 250);
+		for (const chunk of chunks) {
+			console.log(chunk.length);
+			await prisma.$transaction(chunk);
+		}
+	}
 
-    const chunks = this.chunkArray(transactions, 250);
-    for (const chunk of chunks) {
-      console.log(chunk.length);
-      await prisma.$transaction(chunk);
-    }
-  }
+	async sendRequest(page: puppeteer.Page, query: string, slugs: string[], cursor: string) {
+		return await page.evaluate(
+			async (query) => {
+				return fetch('https://api.opensea.io/graphql/', {
+					headers: {
+						accept: '*/*',
+						'accept-language': 'en-US,en;q=0.9',
+						'content-type': 'application/json',
+						'sec-fetch-dest': 'empty',
+						'sec-fetch-mode': 'cors',
+						'sec-fetch-site': 'same-site',
+						'sec-gpc': '1',
+						'x-api-key': '2f6f419a083c46de9d83ce3dbe7db601',
+						'x-build-id': 'hNScqXyRZeM9MrBNOg-iQ',
+					},
+					referrer: 'https://opensea.io/',
+					referrerPolicy: 'strict-origin',
+					body: JSON.stringify({ query: query.query, variables: { slugs: query.slugs, first: 100, after: query.cursor ?? '' } }),
+					method: 'POST',
+					mode: 'cors',
+					credentials: 'omit',
+				}).then((response) => response.json());
+			},
+			{ query, slugs, cursor },
+		);
+	}
 
-  async sendRequest(page: puppeteer.Page, query: string, slugs: string[], cursor: string) {
-    return await page.evaluate(
-      async (query) => {
-        return fetch('https://api.opensea.io/graphql/', {
-          headers: {
-            accept: '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/json',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'sec-gpc': '1',
-            'x-api-key': '2f6f419a083c46de9d83ce3dbe7db601',
-            'x-build-id': 'hNScqXyRZeM9MrBNOg-iQ',
-          },
-          referrer: 'https://opensea.io/',
-          referrerPolicy: 'strict-origin',
-          body: JSON.stringify({ query: query.query, variables: { slugs: query.slugs, first: 100, after: query.cursor ?? '' } }),
-          method: 'POST',
-          mode: 'cors',
-          credentials: 'omit',
-        }).then((response) => response.json());
-      },
-      { query, slugs, cursor }
-    );
-  }
-
-  async getAssetsQuery(): Promise<string> {
-    return `query searchAssetsQuery($slugs: [CollectionSlug!], $first: Int!, $after: String) {
+	async getAssetsQuery(): Promise<string> {
+		return `query searchAssetsQuery($slugs: [CollectionSlug!], $first: Int!, $after: String) {
       search(collections: $slugs, first: $first, sortBy: CREATED_DATE, sortAscending: true, resultType: ASSETS, after: $after) {
         pageInfo {
           endCursor
@@ -257,394 +244,396 @@ class OpenSea {
         }
       }
     }`;
-  }
+	}
 
-  async test() {
-    if (!this.BROWSER) {
-      this.BROWSER = await puppeteer.launch({ headless: false, devtools: true });
-    }
+	async test() {
+		if (!this.BROWSER) {
+			this.BROWSER = await puppeteer.launch({ headless: false, devtools: true });
+		}
 
-    const page = await this.BROWSER.newPage();
-    await page.goto('https://opensea.io', {
-      waitUntil: 'networkidle2',
-    });
+		const page = await this.BROWSER.newPage();
+		await page.goto('https://opensea.io', {
+			waitUntil: 'networkidle2',
+		});
 
-    const collections = await prisma.collections.findUnique({ where: { type: 'collections' } });
-    if (!collections) return;
+		const collections = await prisma.collections.findUnique({ where: { type: 'collections' } });
+		if (!collections) return;
 
-    const query = await this.getCollectionsQuery();
+		const query = await this.getCollectionsQuery();
 
-    const ez = async (query: string, slugs: string[]) => {
-      return await page.evaluate(
-        async (query) => {
-          return fetch('https://api.opensea.io/graphql/', {
-            headers: {
-              accept: '*/*',
-              'accept-language': 'en-US,en;q=0.9',
-              'content-type': 'application/json',
-              'sec-fetch-dest': 'empty',
-              'sec-fetch-mode': 'cors',
-              'sec-fetch-site': 'same-site',
-              'sec-gpc': '1',
-              'x-api-key': '2f6f419a083c46de9d83ce3dbe7db601',
-              'x-build-id': 'hNScqXyRZeM9MrBNOg-iQ',
-            },
-            referrer: 'https://opensea.io/',
-            referrerPolicy: 'strict-origin',
-            body: JSON.stringify({ query: query.query, variables: { slugs: query.slugs, first: 100 } }),
-            method: 'POST',
-            mode: 'cors',
-            credentials: 'omit',
-          }).then((response) => response.json());
-        },
-        { query, slugs }
-      );
-    };
+		const ez = async (query: string, slugs: string[]) => {
+			return await page.evaluate(
+				async (query) => {
+					return fetch('https://api.opensea.io/graphql/', {
+						headers: {
+							accept: '*/*',
+							'accept-language': 'en-US,en;q=0.9',
+							'content-type': 'application/json',
+							'sec-fetch-dest': 'empty',
+							'sec-fetch-mode': 'cors',
+							'sec-fetch-site': 'same-site',
+							'sec-gpc': '1',
+							'x-api-key': '2f6f419a083c46de9d83ce3dbe7db601',
+							'x-build-id': 'hNScqXyRZeM9MrBNOg-iQ',
+						},
+						referrer: 'https://opensea.io/',
+						referrerPolicy: 'strict-origin',
+						body: JSON.stringify({ query: query.query, variables: { slugs: query.slugs, first: 100 } }),
+						method: 'POST',
+						mode: 'cors',
+						credentials: 'omit',
+					}).then((response) => response.json());
+				},
+				{ query, slugs },
+			);
+		};
 
-    ez(query, collections.slugs).then(async (data) => {
-      const collections = await prisma.collection.findMany({
-        include: {
-          attribute: true,
-        },
-      });
+		ez(query, collections.slugs).then(async (data) => {
+			const collections = await prisma.collection.findMany({
+				include: {
+					attribute: true,
+				},
+			});
 
-      const transactions: any = [];
+			const transactions: any = [];
 
-      // const cryptopunks_attributes = [
-      //   { id: 'Hair' },
-      //   { id: 'Eyes' },
-      //   { id: 'Facial Hair' },
-      //   { id: 'Neck Accessory' },
-      //   { id: 'Mouth Prop' },
-      //   { id: 'Mouth' },
-      //   { id: 'Blemishes' },
-      //   { id: 'Ears' },
-      //   { id: 'Nose' },
-      // ];
+			// const cryptopunks_attributes = [
+			//   { id: 'Hair' },
+			//   { id: 'Eyes' },
+			//   { id: 'Facial Hair' },
+			//   { id: 'Neck Accessory' },
+			//   { id: 'Mouth Prop' },
+			//   { id: 'Mouth' },
+			//   { id: 'Blemishes' },
+			//   { id: 'Ears' },
+			//   { id: 'Nose' },
+			// ];
 
-      await Promise.all(
-        data.data.collections.edges.map(async (x: any) => {
-          const collectionId = collections?.find((c) => c.slug === x.node.slug);
-          if (!collectionId) return;
+			await Promise.all(
+				data.data.collections.edges.map(async (x: any) => {
+					const collectionId = collections?.find((c) => c.slug === x.node.slug);
+					if (!collectionId) return;
 
-          // Sort array attributes by alphabetical order
-          const alphabeticalOrder = _.orderBy(x.node.stringTraits, [(trait) => trait.key.toLowerCase()], ['asc']);
+					// Sort array attributes by alphabetical order
+					const alphabeticalOrder = _.orderBy(x.node.stringTraits, [(trait) => trait.key.toLowerCase()], ['asc']);
 
-          await Promise.all(
-            alphabeticalOrder.map(async (a: any) => {
-              const attributeUppercase = _.upperFirst(_.toLower(a.key));
+					await Promise.all(
+						alphabeticalOrder.map(async (a: any) => {
+							const attributeUppercase = _.upperFirst(_.toLower(a.key));
 
-              // Saving Attributes
-              // transactions.push(
-              //   prisma.attribute.upsert({
-              //     where: {
-              //       attributeId: `${x.node.slug}_${attributeUppercase}`,
-              //     },
-              //     update: {},
-              //     create: {
-              //       attributeId: `${x.node.slug}_${attributeUppercase}`,
-              //       attributeType: attributeUppercase,
-              //       collectionId: collectionId.id,
-              //     },
-              //   })
-              // );
+							// Saving Attributes - Step 1
+							// transactions.push(
+							// 	prisma.attribute.upsert({
+							// 		where: {
+							// 			attributeId: `${x.node.slug}_${attributeUppercase}`,
+							// 		},
+							// 		update: {},
+							// 		create: {
+							// 			attributeId: `${x.node.slug}_${attributeUppercase}`,
+							// 			attributeType: attributeUppercase,
+							// 			collectionId: collectionId.id,
+							// 		},
+							// 	}),
+							// );
 
-              // Compare is the attributes are the same with uppercase since OpenSea provides lower and upper
-              const attrId = collectionId.attribute.find((attr) => attr.attributeType === attributeUppercase)?.id;
-              let attrTotal = 0;
+							// Compare is the attributes are the same with uppercase since OpenSea provides lower and upper
+							// Step 2
 
-              await Promise.all(
-                a.counts.map(async (trait: any) => {
-                  if (attrId) {
-                    attrTotal += trait.count;
+							const attrId = collectionId.attribute.find((attr) => attr.attributeType === attributeUppercase)?.id;
+							let attrTotal = 0;
 
-                    const traitId = `${x.node.slug}_${attributeUppercase}_${trait.value}`;
+							await Promise.all(
+								a.counts.map(async (trait: any) => {
+									if (attrId) {
+										attrTotal += trait.count;
 
-                    transactions.push(
-                      prisma.trait.upsert({
-                        where: {
-                          traitId,
-                        },
-                        update: {},
-                        create: {
-                          traitId,
-                          traitType: trait.value,
-                          traitCount: trait.count,
-                          attributeId: attrId,
-                        },
-                      })
-                    );
-                  }
-                })
-              );
+										const traitId = `${x.node.slug}_${attributeUppercase}_${trait.value}`;
 
-              if (attrId) {
-                transactions.push(
-                  prisma.trait.upsert({
-                    where: {
-                      traitId: `${x.node.slug}_${attributeUppercase}_None`,
-                    },
-                    update: {},
-                    create: {
-                      traitId: `${x.node.slug}_${attributeUppercase}_None`,
-                      traitType: 'None',
-                      traitCount: x.node.stats.totalSupply - attrTotal,
-                      attributeId: attrId,
-                    },
-                  })
-                );
-              }
-            })
-          );
+										transactions.push(
+											prisma.trait.upsert({
+												where: {
+													traitId,
+												},
+												update: {},
+												create: {
+													traitId,
+													traitType: trait.value,
+													traitCount: trait.count,
+													attributeId: attrId,
+												},
+											}),
+										);
+									}
+								}),
+							);
 
-          transactions.push(
-            prisma.attribute.upsert({
-              where: { attributeId: `${x.node.slug}_Attributes` },
-              update: {},
-              create: {
-                attributeId: `${x.node.slug}_Attributes`,
-                attributeType: 'Attribute Count',
-                attributeCount: 0,
-                collectionId: collectionId.id,
-              },
-            })
-          );
+							if (attrId) {
+								transactions.push(
+									prisma.trait.upsert({
+										where: {
+											traitId: `${x.node.slug}_${attributeUppercase}_None`,
+										},
+										update: {},
+										create: {
+											traitId: `${x.node.slug}_${attributeUppercase}_None`,
+											traitType: 'None',
+											traitCount: x.node.stats.totalSupply - attrTotal,
+											attributeId: attrId,
+										},
+									}),
+								);
+							}
+						}),
+					);
 
-          // await Promise.all(
-          //   alphabeticalOrder.map(async (a: any) => {
-          //     if (!collectionAttributes.hasOwnProperty(a.key)) {
-          //       collectionAttributes[a.key] = attributeId;
-          //       attributeId += 1;
-          //     }
+					transactions.push(
+						prisma.attribute.upsert({
+							where: { attributeId: `${x.node.slug}_Attributes` },
+							update: {},
+							create: {
+								attributeId: `${x.node.slug}_Attributes`,
+								attributeType: 'Attribute Count',
+								attributeCount: 0,
+								collectionId: collectionId.id,
+							},
+						}),
+					);
 
-          //     const attrId = collectionId.attribute.find((attr) => attr.attributeType === a.key)?.id;
-          //     let attrTotal = 0;
+					// await Promise.all(
+					//   alphabeticalOrder.map(async (a: any) => {
+					//     if (!collectionAttributes.hasOwnProperty(a.key)) {
+					//       collectionAttributes[a.key] = attributeId;
+					//       attributeId += 1;
+					//     }
 
-          //     await Promise.all(
-          //       a.counts.map(async (trait: any) => {
-          //         if (attrId) {
-          //           attrTotal += trait.count;
+					//     const attrId = collectionId.attribute.find((attr) => attr.attributeType === a.key)?.id;
+					//     let attrTotal = 0;
 
-          //           transactions.push(
-          //             prisma.trait.upsert({
-          //               where: {
-          //                 traitId: `${x.node.slug}_${collectionAttributes[a.key]}_${trait.value}`,
-          //               },
-          //               update: {},
-          //               create: {
-          //                 traitId: `${x.node.slug}_${collectionAttributes[a.key]}_${trait.value}`,
-          //                 traitType: trait.value,
-          //                 traitCount: trait.count,
-          //                 attributeId: attrId,
-          //               },
-          //             })
-          //           );
-          //         }
-          //       })
-          //     );
+					//     await Promise.all(
+					//       a.counts.map(async (trait: any) => {
+					//         if (attrId) {
+					//           attrTotal += trait.count;
 
-          //     console.log({
-          //       traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
-          //       traitType: 'None',
-          //       traitCount: x.node.stats.totalSupply - attrTotal,
-          //       attributeId: attrId,
-          //     });
+					//           transactions.push(
+					//             prisma.trait.upsert({
+					//               where: {
+					//                 traitId: `${x.node.slug}_${collectionAttributes[a.key]}_${trait.value}`,
+					//               },
+					//               update: {},
+					//               create: {
+					//                 traitId: `${x.node.slug}_${collectionAttributes[a.key]}_${trait.value}`,
+					//                 traitType: trait.value,
+					//                 traitCount: trait.count,
+					//                 attributeId: attrId,
+					//               },
+					//             })
+					//           );
+					//         }
+					//       })
+					//     );
 
-          //     // if (attrId) {
-          //     //   transactions.push(
-          //     //     prisma.trait.upsert({
-          //     //       where: {
-          //     //         traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
-          //     //       },
-          //     //       update: {},
-          //     //       create: {
-          //     //         traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
-          //     //         traitType: 'None',
-          //     //         traitCount: x.node.stats.totalSupply - attrTotal,
-          //     //         attributeId: attrId,
-          //     //       },
-          //     //     })
-          //     //   );
-          //     // }
+					//     console.log({
+					//       traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
+					//       traitType: 'None',
+					//       traitCount: x.node.stats.totalSupply - attrTotal,
+					//       attributeId: attrId,
+					//     });
 
-          //     // console.log(collectionTraitsIds);
+					//     // if (attrId) {
+					//     //   transactions.push(
+					//     //     prisma.trait.upsert({
+					//     //       where: {
+					//     //         traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
+					//     //       },
+					//     //       update: {},
+					//     //       create: {
+					//     //         traitId: `${x.node.slug}_${collectionAttributes[a.key]}_None`,
+					//     //         traitType: 'None',
+					//     //         traitCount: x.node.stats.totalSupply - attrTotal,
+					//     //         attributeId: attrId,
+					//     //       },
+					//     //     })
+					//     //   );
+					//     // }
 
-          //     // if (!collectionTraits.hasOwnProperty(a.key)) {
-          //     //   collectionTraits.push({
-          //     //     id: traitId,
-          //     //     traitType: a.key,
-          //     //     traits: [],
-          //     //   });
+					//     // console.log(collectionTraitsIds);
 
-          //     //   traitId += 1;
-          //     // }
+					//     // if (!collectionTraits.hasOwnProperty(a.key)) {
+					//     //   collectionTraits.push({
+					//     //     id: traitId,
+					//     //     traitType: a.key,
+					//     //     traits: [],
+					//     //   });
 
-          //     // await Promise.all(
-          //     //   a.counts.map(async (trait: any) => {
-          //     //     const attr = collectionTraits.find((ct) => ct.traitType === a.key);
-          //     //     attr.traits.push(trait.value);
-          //     //   })
-          //     // );
+					//     //   traitId += 1;
+					//     // }
 
-          //     // await Promise.all(a.counts.map(async (trait: any) => {
-          //     //   transactions.push(
-          //     //     prisma.trait.upsert({
-          //     //       where: {  }
-          //     //     })
-          //     //   )
-          //     // }));
+					//     // await Promise.all(
+					//     //   a.counts.map(async (trait: any) => {
+					//     //     const attr = collectionTraits.find((ct) => ct.traitType === a.key);
+					//     //     attr.traits.push(trait.value);
+					//     //   })
+					//     // );
 
-          //     // const attributeId = `${x.node.slug}_${collectionAttributes[a.key]}`;
-          //     // const attributeData: { [key: string]: number } = {};
+					//     // await Promise.all(a.counts.map(async (trait: any) => {
+					//     //   transactions.push(
+					//     //     prisma.trait.upsert({
+					//     //       where: {  }
+					//     //     })
+					//     //   )
+					//     // }));
 
-          //     // transactions.push(
-          //     //   prisma.attribute.upsert({
-          //     //     where: {
-          //     //       attributeId,
-          //     //     },
-          //     //     update: {},
-          //     //     create: {
-          //     //       attributeId,
-          //     //       attributeType: a.key,
-          //     //       collectionId: collectionId.id,
-          //     //     },
-          //     //   })
-          //     // );
+					//     // const attributeId = `${x.node.slug}_${collectionAttributes[a.key]}`;
+					//     // const attributeData: { [key: string]: number } = {};
 
-          //     // await Promise.all(
-          //     //   a.counts.map((s: any) => {
-          //     //     attributeData[a.key] += s.count;
-          //     //     collectionTraits.push({ attributeType: a.key, traitType: s.value, count: s.count });
-          //     //   })
-          //     // );
-          //   })
-          // );
+					//     // transactions.push(
+					//     //   prisma.attribute.upsert({
+					//     //     where: {
+					//     //       attributeId,
+					//     //     },
+					//     //     update: {},
+					//     //     create: {
+					//     //       attributeId,
+					//     //       attributeType: a.key,
+					//     //       collectionId: collectionId.id,
+					//     //     },
+					//     //   })
+					//     // );
 
-          // await Promise.all(
-          //   collectionTraits.map((t) => {
-          //     for (const [key, value] of Object.entries(collectionAttributes)) {
-          //       if (key === t.attributeType) {
-          //         console.log({
-          //           attributeType: key,
-          //           attributeId: value,
-          //           traitType: t.traitType,
-          //           count: t.count,
-          //         });
-          //       }
-          //     }
-          //   })
-          // );
-        })
-      );
+					//     // await Promise.all(
+					//     //   a.counts.map((s: any) => {
+					//     //     attributeData[a.key] += s.count;
+					//     //     collectionTraits.push({ attributeType: a.key, traitType: s.value, count: s.count });
+					//     //   })
+					//     // );
+					//   })
+					// );
 
-      const chunks = this.chunkArray(transactions, 250);
-      for (const chunk of chunks) {
-        console.log(chunk.length);
-        await prisma.$transaction(chunk);
-      }
+					// await Promise.all(
+					//   collectionTraits.map((t) => {
+					//     for (const [key, value] of Object.entries(collectionAttributes)) {
+					//       if (key === t.attributeType) {
+					//         console.log({
+					//           attributeType: key,
+					//           attributeId: value,
+					//           traitType: t.traitType,
+					//           count: t.count,
+					//         });
+					//       }
+					//     }
+					//   })
+					// );
+				}),
+			);
 
-      await this.BROWSER?.close();
-      this.BROWSER = null;
-    });
-  }
+			const chunks = this.chunkArray(transactions, 250);
+			for (const chunk of chunks) {
+				console.log(chunk.length);
+				await prisma.$transaction(chunk);
+			}
 
-  chunkArray(transactions: any[], chunkSize: number) {
-    return Array.from({ length: Math.ceil(transactions.length / chunkSize) }, (_, i) => transactions.slice(i * chunkSize, (i + 1) * chunkSize));
-  }
+			await this.BROWSER?.close();
+			this.BROWSER = null;
+		});
+	}
 
-  async getCollections() {
-    if (!this.BROWSER) {
-      this.BROWSER = await puppeteer.launch({ headless: false });
-    }
+	chunkArray(transactions: any[], chunkSize: number) {
+		return Array.from({ length: Math.ceil(transactions.length / chunkSize) }, (_, i) => transactions.slice(i * chunkSize, (i + 1) * chunkSize));
+	}
 
-    const page = await this.BROWSER.newPage();
+	async getCollections() {
+		if (!this.BROWSER) {
+			this.BROWSER = await puppeteer.launch({ headless: false });
+		}
 
-    const collections = await prisma.collections.findUnique({ where: { type: 'collections' } });
-    if (!collections) {
-      await this.BROWSER.close();
-      this.BROWSER = null;
-      return;
-    }
+		const page = await this.BROWSER.newPage();
 
-    // const query = await this.getCollectionsQuery(collections.slugs ?? []);
-    const query = ':sad';
-    const response = await this.gqlRequest({ page, query, timeout: 2500 });
+		const collections = await prisma.collections.findUnique({ where: { type: 'collections' } });
+		if (!collections) {
+			await this.BROWSER.close();
+			this.BROWSER = null;
+			return;
+		}
 
-    console.log(response.success);
-    console.log(response.data);
+		// const query = await this.getCollectionsQuery(collections.slugs ?? []);
+		const query = ':sad';
+		const response = await this.gqlRequest({ page, query, timeout: 2500 });
 
-    if (!response.success) return;
+		console.log(response.success);
+		console.log(response.data);
 
-    const traitIds: any = {};
-    const traitCounts: any = {};
-    let traitId = 0;
+		if (!response.success) return;
 
-    await Promise.all(
-      response.data.data.query.collections.edges.map(async (x: any) => {
-        await Promise.all(
-          x.node.stringTraits.map(async (t: any) => {
-            if (!traitIds.hasOwnProperty(x.node.slug)) {
-              traitIds[x.node.slug] = {
-                id: traitId,
-              };
-            }
+		const traitIds: any = {};
+		const traitCounts: any = {};
+		let traitId = 0;
 
-            // if (!traitIds.hasOwnProperty(t.key)) {
-            //   traitIds[t.key] = traitId;
-            //   traitId++;
-            //   traitCounts[t.key] = 0;
+		await Promise.all(
+			response.data.data.query.collections.edges.map(async (x: any) => {
+				await Promise.all(
+					x.node.stringTraits.map(async (t: any) => {
+						if (!traitIds.hasOwnProperty(x.node.slug)) {
+							traitIds[x.node.slug] = {
+								id: traitId,
+							};
+						}
 
-            //   await Promise.all(
-            //     t.counts.map((a: any) => {
-            //       traitCounts[t.key] += a.count;
-            //     })
-            //   );
-            // }
-          })
-        );
-      })
-    );
+						// if (!traitIds.hasOwnProperty(t.key)) {
+						//   traitIds[t.key] = traitId;
+						//   traitId++;
+						//   traitCounts[t.key] = 0;
 
-    await this.BROWSER.close();
-    this.BROWSER = null;
+						//   await Promise.all(
+						//     t.counts.map((a: any) => {
+						//       traitCounts[t.key] += a.count;
+						//     })
+						//   );
+						// }
+					}),
+				);
+			}),
+		);
 
-    console.log(traitIds);
-    console.log(traitCounts);
-  }
+		await this.BROWSER.close();
+		this.BROWSER = null;
 
-  async sortCollections(data: any) {}
+		console.log(traitIds);
+		console.log(traitCounts);
+	}
 
-  async gqlRequest({ page, query, timeout }: { page: puppeteer.Page; query: string; timeout: number }) {
-    return new Promise<{ success: boolean; data: any }>(async (resolve) => {
-      await page.setRequestInterception(true);
+	async sortCollections(data: any) {}
 
-      setTimeout(async () => {
-        page.on('request', async (interceptedRequest) => {
-          const postData = query;
-          interceptedRequest.continue({
-            method: 'GET',
-            postData,
-            headers: {
-              'content-type': 'application/json',
-              accept: 'application/json',
-            },
-          });
-        });
+	async gqlRequest({ page, query, timeout }: { page: puppeteer.Page; query: string; timeout: number }) {
+		return new Promise<{ success: boolean; data: any }>(async (resolve) => {
+			await page.setRequestInterception(true);
 
-        const response = await page.goto('https://api.opensea.io/graphql');
-        if (response.status() === 200) {
-          resolve({ success: true, data: JSON.parse(await response.text()) });
-        } else {
-          resolve({ success: false, data: null });
-        }
+			setTimeout(async () => {
+				page.on('request', async (interceptedRequest) => {
+					const postData = query;
+					interceptedRequest.continue({
+						method: 'GET',
+						postData,
+						headers: {
+							'content-type': 'application/json',
+							accept: 'application/json',
+						},
+					});
+				});
 
-        // await page.close();
-      }, timeout ?? 1000);
-    });
-  }
+				const response = await page.goto('https://api.opensea.io/graphql');
+				if (response.status() === 200) {
+					resolve({ success: true, data: JSON.parse(await response.text()) });
+				} else {
+					resolve({ success: false, data: null });
+				}
 
-  async getCollectionsQuery(): Promise<string> {
-    return `query getCollections($slugs: [CollectionSlug!], $first: Int!) {
+				// await page.close();
+			}, timeout ?? 1000);
+		});
+	}
+
+	async getCollectionsQuery(): Promise<string> {
+		return `query getCollections($slugs: [CollectionSlug!], $first: Int!) {
       collections(collections: $slugs, first: $first, sortBy: TOTAL_VOLUME) {
         pageInfo {
           endCursor
@@ -702,7 +691,7 @@ class OpenSea {
         }
       }
     }`;
-  }
+	}
 }
 
 const api = new OpenSea();

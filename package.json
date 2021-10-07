@@ -27,6 +27,7 @@
 		"apollo-server-micro": "^3.3.0",
 		"app-root-path": "^3.0.0",
 		"bson": "^4.5.2",
+		"easy-peasy": "^5.0.3",
 		"framer-motion": "^4.1.17",
 		"got": "^11.8.2",
 		"graphql": "^15.5.3",
