@@ -47,11 +47,17 @@ type Collection {
   twitterUsername: String
 }
 
+type Featured {
+  collection: Collection
+  slot: Int
+}
+
 type Query {
   asset(slug: String!, tokenId: Int!): Score
   assets(page: Int!, slug: String!, take: Int!): [Score]
   collection(slug: String!): Collection
-  collections: [Collection]
+  collections(orderBy: String, sortAscending: String): [Collection]
+  featured: [Featured]
   upcoming: [Upcoming]
 }
 

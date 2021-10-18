@@ -4,32 +4,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Skeleton from 'react-loading-skeleton';
 import { gql, useQuery, useApolloClient } from '@apollo/client';
-import { ExternalLinkIcon, SearchIcon, XIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/outline';
+import { ExternalLinkIcon, SearchIcon, XIcon } from '@heroicons/react/outline';
+import { MDXRemote } from 'next-mdx-remote';
 import { motion } from 'framer-motion';
+
+import MarkdownLink from '@root/ui/components/Markdown/Link';
 
 import { useStoreState, useStoreActions } from '@root/store';
 
 import Asset from '@root/ui/components/Modal/Asset';
 import Navbar from '@root/ui/components/Navbar';
+import { renderMarkdown } from '@root/utils/markdown';
+
+const components = { ...MarkdownLink };
 
 const getCollectionQuery = gql`
 	query Collection($slug: String!, $page: Int!) {
-		collection(slug: $slug) {
-			name
-			description
-			contractAddress
-			externalUrl
-			discordUrl
-			twitterUsername
-			slug
-			bannerImageUrl
-			totalVolume
-			totalSupply
-			sevenDayVolume
-			sevenDaySales
-			numOwners
-		}
-
 		assets(slug: $slug, take: 25, page: $page) {
 			type
 			rarityRank
@@ -132,13 +122,13 @@ interface Asset {
 	};
 }
 
-const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ slug }) => {
+const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ slug, collection, source }) => {
 	const [page, setPage] = useState<number>(1);
 	const [assetsLoading, setAssetsLoading] = useState<boolean>(false);
 	const [filter, setFilter] = useState<{ type: string; asset: Asset | null }>({ type: 'default', asset: null });
 	const [search, setSearch] = useState<string>('');
 	const [assets, setAssets] = useState<Asset[]>([]);
-	const [collection, setCollection] = useState<Collection>();
+	// const [collection, setCollection] = useState<Collection>();
 	const modal = useStoreState((state) => state.modal);
 	const setShow = useStoreActions((actions) => actions.modal.setShow);
 	const setAsset = useStoreActions((actions) => actions.modal.setAsset);
@@ -150,7 +140,6 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 			page: 1,
 		},
 		onCompleted: (data) => {
-			setCollection({ ...data.collection });
 			setAssets([...data.assets]);
 		},
 	});
@@ -270,12 +259,14 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 				{!loading && assets && collection ? (
 					<>
 						<div className="relative w-full h-32 sm:h-40 md:h-60 lg:h-80">
-							<Image src={collection.bannerImageUrl} layout="fill" className="object-cover rounded" />
+							<Image src={collection.bannerImageUrl ?? ''} layout="fill" className="object-cover rounded" />
 						</div>
 
 						<div className="space-y-4">
 							<div className="text-3xl font-bold">{collection.name}</div>
-							<div className="text-sm md:text-lg font-light">{collection.description}</div>
+							<div className="text-sm md:text-lg font-light">
+								<MDXRemote {...source!} components={components} />
+							</div>
 						</div>
 
 						<div className="flex flex-row space-x-6">
@@ -458,10 +449,45 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 	);
 };
 
-export const getServerSideProps = (ctx: GetServerSidePropsContext) => {
+export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
+	const slug = ctx.params?.slug as string;
+
+	const collection = await prisma.collection.findUnique({
+		where: { slug },
+		select: {
+			name: true,
+			description: true,
+			contractAddress: true,
+			externalUrl: true,
+			discordUrl: true,
+			twitterUsername: true,
+			slug: true,
+			bannerImageUrl: true,
+			totalVolume: true,
+			totalSupply: true,
+			sevenDayVolume: true,
+			sevenDaySales: true,
+			numOwners: true,
+		},
+	});
+
+	if (!collection) {
+		ctx.res.setHeader('location', 'https://nftranks.gg');
+		ctx.res.statusCode = 302;
+		ctx.res.end();
+
+		return {
+			props: {},
+		};
+	}
+
+	const source = await renderMarkdown(collection?.description ?? '');
+
 	return {
 		props: {
-			slug: ctx.params?.slug,
+			slug,
+			collection,
+			source,
 		},
 	};
 };

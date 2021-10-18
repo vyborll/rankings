@@ -37,6 +37,7 @@
 		"lodash": "^4.17.21",
 		"micro": "^9.3.4",
 		"next": "11.1.2",
+		"next-mdx-remote": "^3.0.6",
 		"nexus": "^1.1.0",
 		"node-request-queue": "^1.0.2",
 		"nprogress": "^0.2.0",

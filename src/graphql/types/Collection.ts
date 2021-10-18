@@ -1,4 +1,4 @@
-import { objectType, extendType, nonNull, stringArg } from 'nexus';
+import { objectType, extendType, nonNull, stringArg, nullable, booleanArg } from 'nexus';
 
 export const Collection = objectType({
 	name: 'Collection',
@@ -54,7 +54,11 @@ export const CollectionQuery = extendType({
 
 		t.list.field('collections', {
 			type: 'Collection',
-			async resolve(_, __, ctx) {
+			args: {
+				orderBy: nullable(stringArg()),
+				sortAscending: nullable(stringArg()),
+			},
+			async resolve(_, args, ctx) {
 				return ctx.prisma.collection.findMany({
 					orderBy: {
 						totalVolume: 'desc',

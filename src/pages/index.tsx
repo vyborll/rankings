@@ -1,15 +1,29 @@
 import type { NextPage } from 'next';
-import Image from 'next/image';
 import { gql, useQuery } from '@apollo/client';
 import Skeleton from 'react-loading-skeleton';
 
 import Layout from '@root/ui/components/Layout';
 import Navbar from '@root/ui/components/Navbar';
-import Featured from '@root/ui/components/Collections/Featured';
+
+import Card from '@root/ui/components/Collections/Card';
+
 import AllCollections from '@root/ui/components/Collections/All';
 
 const getCollectionsQuery = gql`
 	query {
+		featured {
+			collection {
+				name
+				slug
+				imageUrl
+				description
+				totalSupply
+				externalUrl
+				discordUrl
+				twitterUsername
+			}
+		}
+
 		collections {
 			name
 			slug
@@ -31,12 +45,26 @@ const getCollectionsQuery = gql`
 const Home: NextPage = () => {
 	const { loading, error, data } = useQuery(getCollectionsQuery);
 
+	console.log(data);
+
 	return (
 		<>
 			<Navbar />
 
 			<Layout>
-				<Featured loading={loading} error={error} collections={data?.collections ?? []} />
+				<div>
+					<span className="text-2xl font-bold mb-1 border-b border-green-950 pb-1">Featured Collections</span>
+				</div>
+
+				<div className="grid xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					{!loading && data.featured.map((feature: any, i: number) => <Card key={i} featured={true} collection={feature.collection} />)}
+					{!loading &&
+						data.collections
+							.slice(Math.max(data.collections.length - 7, 0))
+							.reverse()
+							.map((collection: any, i: number) => <Card key={i} featured={false} collection={collection} />)}
+				</div>
+
 				<AllCollections loading={loading} error={error} collections={data?.collections ?? []} />
 			</Layout>
 		</>
