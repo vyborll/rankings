@@ -53,7 +53,7 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 								<div className="flex flex-col md:flex-row md:space-x-4 md:space-y-0 space-y-4">
 									<div className="md:block flex flex-col items-center space-y-4">
 										<div className="flex items-center justify-center bg-green-960 text-green-940 rounded px-4 md:px-0 py-1">
-											Rank: <span className="font-bold ml-1">#{storeAsset?.rarityRank}</span>
+											Rank: <span className="font-bold ml-1">#{storeAsset?.defaultRank}</span>
 										</div>
 										<img style={{ height: 160, width: 160 }} src={storeAsset?.asset.imageUrl} className="rounded" />
 										<div>
@@ -66,7 +66,7 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 									<div className="flex flex-1 flex-col space-y-4">
 										<div className="flex flex-1 items-center justify-center space-y-4 sm:space-y-0">
 											<div className="bg-green-960 text-green-940 rounded px-4 py-1">
-												Rarity Score: <span className="font-bold">{storeAsset?.rarityScore.toFixed(2)}</span>
+												Rarity Score: <span className="font-bold">{storeAsset?.defaultScore.toFixed(2)}</span>
 											</div>
 										</div>
 
@@ -83,12 +83,12 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 											<div className="space-y-3">
 												{sortType === 'score'
 													? [...(storeAsset?.asset.traits ?? [])]
-															.sort((a, b) => b.rarityScore - a.rarityScore)
+															.sort((a, b) => b.defaultScore - a.defaultScore)
 															.map((trait, i) => (
 																<div key={i} className="flex flex-col space-y-1">
 																	<div className="flex flex-row justify-between">
 																		<div className="font-semibold">{trait.attribute.attributeType}</div>
-																		<div className="text-green-940 font-semibold px-2">+{trait.rarityScore.toFixed(2)}</div>
+																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
 																	</div>
 																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
 																		<div>{trait.traitType}</div>
@@ -105,7 +105,7 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 																<div key={i} className="flex flex-col space-y-1">
 																	<div className="flex flex-row justify-between">
 																		<div className="font-semibold">{trait.attribute.attributeType}</div>
-																		<div className="text-green-940 font-semibold px-2">+{trait.rarityScore.toFixed(2)}</div>
+																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
 																	</div>
 																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
 																		<div>{trait.traitType}</div>

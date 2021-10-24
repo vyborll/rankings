@@ -8,8 +8,6 @@ interface Props {
 }
 
 const Card: React.FC<Props> = ({ featured, collection }) => {
-	console.log(collection.imageUrl);
-
 	return (
 		<div className={`bg-dark-800 p-4 rounded relative overflow-hidden ${featured ? 'border border-green-950' : ''}`}>
 			{featured && <div className="ribbon bg-green-950 text-base font-bold whitespace-no-wrap px-10 py-1">Featured</div>}

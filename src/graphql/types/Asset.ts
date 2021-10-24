@@ -1,5 +1,5 @@
 import { extendType, objectType, nonNull, stringArg, nullable, booleanArg, intArg } from 'nexus';
-import { Score } from './Score';
+import { Rank } from './Rank';
 import { Trait } from './Trait';
 
 export const Asset = objectType({
@@ -18,19 +18,19 @@ export const AssetQuery = extendType({
 	type: 'Query',
 	definition(t) {
 		t.nullable.field('asset', {
-			type: Score,
+			type: Rank,
 			args: {
 				slug: nonNull(stringArg()),
 				tokenId: nonNull(intArg()),
 			},
 			async resolve(_, args, ctx) {
-				return ctx.prisma.score.findUnique({
+				return ctx.prisma.rank.findUnique({
 					where: {
-						scoreId: `${args.slug.toLowerCase()}_${args.tokenId}_default`,
+						rankId: `${args.slug.toLowerCase()}|default|${args.tokenId}`,
 					},
 					select: {
-						rarityRank: true,
-						rarityScore: true,
+						defaultRank: true,
+						defaultScore: true,
 						asset: {
 							select: {
 								tokenId: true,
@@ -40,8 +40,8 @@ export const AssetQuery = extendType({
 									select: {
 										traitType: true,
 										traitCount: true,
-										rarityScore: true,
 										percentile: true,
+										defaultScore: true,
 										attribute: {
 											select: {
 												attributeType: true,
@@ -57,7 +57,7 @@ export const AssetQuery = extendType({
 		});
 
 		t.list.field('assets', {
-			type: Score,
+			type: Rank,
 			args: {
 				slug: nonNull(stringArg()),
 				take: nonNull(intArg()),
@@ -68,7 +68,7 @@ export const AssetQuery = extendType({
 					throw new Error('The maximum number for take is 25');
 				}
 
-				return ctx.prisma.score.findMany({
+				return await ctx.prisma.rank.findMany({
 					where: {
 						type: 'default',
 						asset: {
@@ -80,8 +80,8 @@ export const AssetQuery = extendType({
 						},
 					},
 					select: {
-						rarityRank: true,
-						rarityScore: true,
+						defaultRank: true,
+						defaultScore: true,
 						asset: {
 							select: {
 								tokenId: true,
@@ -91,7 +91,7 @@ export const AssetQuery = extendType({
 									select: {
 										traitType: true,
 										traitCount: true,
-										rarityScore: true,
+										defaultScore: true,
 										percentile: true,
 										attribute: {
 											select: {
@@ -103,6 +103,7 @@ export const AssetQuery = extendType({
 							},
 						},
 					},
+					orderBy: { defaultRank: 'asc' },
 					skip: args.page * args.take - 25,
 					take: args.take ?? 25,
 				});

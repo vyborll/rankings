@@ -2,8 +2,8 @@ import { Action, action } from 'easy-peasy';
 
 export interface IAsset {
 	type: string;
-	rarityRank: number;
-	rarityScore: number;
+	defaultRank: number;
+	defaultScore: number;
 	asset: {
 		tokenId: string;
 		name: string;
@@ -11,7 +11,7 @@ export interface IAsset {
 		traits: {
 			traitType: string;
 			traitCount: number;
-			rarityScore: number;
+			defaultScore: number;
 			attribute: {
 				attributeType: string;
 			};
@@ -40,7 +40,7 @@ const modal: IModal = {
 	sortType: 'score',
 	setSortType: action((state, payload) => {
 		state.sortType = payload;
-		state.asset?.asset.traits.sort((a, b) => b.rarityScore - a.rarityScore);
+		state.asset?.asset.traits.sort((a, b) => b.defaultScore - a.defaultScore);
 	}),
 };
 

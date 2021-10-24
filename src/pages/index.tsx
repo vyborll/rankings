@@ -45,8 +45,6 @@ const getCollectionsQuery = gql`
 const Home: NextPage = () => {
 	const { loading, error, data } = useQuery(getCollectionsQuery);
 
-	console.log(data);
-
 	return (
 		<>
 			<Navbar />
@@ -57,6 +55,41 @@ const Home: NextPage = () => {
 				</div>
 
 				<div className="grid xs:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					{loading &&
+						Array.from({ length: 9 }).map((_, i) => (
+							<div key={i} className="bg-dark-800 p-4 rounded space-y-4">
+								<div className="flex flex-row items-center">
+									<div className="w-20">
+										<Skeleton className="h-20" duration={2} count={1} />
+									</div>
+									<div className="pl-4">
+										<div className="w-20">
+											<Skeleton className="h-4" duration={2} count={1} />
+										</div>
+										<div className="w-32">
+											<Skeleton className="h-6 w-40" duration={2} count={1} />
+										</div>
+									</div>
+								</div>
+								<div className="w-full">
+									<Skeleton className="h-4" duration={2} count={3} />
+								</div>
+								<div className="flex flex-row space-x-4">
+									<div className="w-20">
+										<Skeleton className="h-4" duration={2} count={1} />
+									</div>
+									<div className="w-20">
+										<Skeleton className="h-4" duration={2} count={1} />
+									</div>
+									<div className="w-20">
+										<Skeleton className="h-4" duration={2} count={1} />
+									</div>
+								</div>
+								<div className="w-full">
+									<Skeleton className="h-9" />
+								</div>
+							</div>
+						))}
 					{!loading && data.featured.map((feature: any, i: number) => <Card key={i} featured={true} collection={feature.collection} />)}
 					{!loading &&
 						data.collections

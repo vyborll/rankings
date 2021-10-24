@@ -8,10 +8,10 @@ import { ExternalLinkIcon, SearchIcon, XIcon } from '@heroicons/react/outline';
 import { MDXRemote } from 'next-mdx-remote';
 import { motion } from 'framer-motion';
 
-import MarkdownLink from '@root/ui/components/Markdown/Link';
-
+import prisma from '@root/utils/lib/prisma';
 import { useStoreState, useStoreActions } from '@root/store';
 
+import MarkdownLink from '@root/ui/components/Markdown/Link';
 import Asset from '@root/ui/components/Modal/Asset';
 import Navbar from '@root/ui/components/Navbar';
 import { renderMarkdown } from '@root/utils/markdown';
@@ -22,8 +22,8 @@ const getCollectionQuery = gql`
 	query Collection($slug: String!, $page: Int!) {
 		assets(slug: $slug, take: 25, page: $page) {
 			type
-			rarityRank
-			rarityScore
+			defaultRank
+			defaultScore
 			asset {
 				tokenId
 				name
@@ -31,7 +31,7 @@ const getCollectionQuery = gql`
 				traits {
 					traitType
 					traitCount
-					rarityScore
+					defaultScore
 					attribute {
 						attributeType
 					}
@@ -45,8 +45,8 @@ const getAssetQuery = gql`
 	query Asset($slug: String!, $tokenId: Int!) {
 		asset(slug: $slug, tokenId: $tokenId) {
 			type
-			rarityRank
-			rarityScore
+			defaultRank
+			defaultScore
 			asset {
 				tokenId
 				name
@@ -54,7 +54,7 @@ const getAssetQuery = gql`
 				traits {
 					traitType
 					traitCount
-					rarityScore
+					defaultScore
 					attribute {
 						attributeType
 					}
@@ -68,8 +68,8 @@ const getAssetsQuery = gql`
 	query Assets($slug: String!, $page: Int!) {
 		assets(slug: $slug, take: 25, page: $page) {
 			type
-			rarityRank
-			rarityScore
+			defaultRank
+			defaultScore
 			asset {
 				tokenId
 				name
@@ -77,7 +77,7 @@ const getAssetsQuery = gql`
 				traits {
 					traitType
 					traitCount
-					rarityScore
+					defaultScore
 					attribute {
 						attributeType
 					}
@@ -105,8 +105,8 @@ interface Collection {
 
 interface Asset {
 	type: string;
-	rarityRank: number;
-	rarityScore: number;
+	defaultRank: number;
+	defaultScore: number;
 	asset: {
 		tokenId: string;
 		name: string;
@@ -114,7 +114,7 @@ interface Asset {
 		traits: {
 			traitType: string;
 			traitCount: number;
-			rarityScore: number;
+			defaultScore: number;
 			attribute: {
 				attributeType: string;
 			};
@@ -360,6 +360,12 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 								</div>
 							</form>
 
+							{assets.length < 1 ? (
+								<div className="h-64 flex items-center justify-center">
+									<div className="text-3xl font-bold">No Assets Found</div>
+								</div>
+							) : null}
+
 							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
 								{filter.type === 'default' &&
 									assets.map((asset: any, i: number) => (
@@ -373,23 +379,23 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 											}}
 										>
 											<div className="flex flex-row items-center justify-between">
-												<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{asset.rarityRank}</div>
+												<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{asset.defaultRank}</div>
 												<div className="text-sm text-gray-200 font-bold">ID: {asset.asset.tokenId}</div>
 											</div>
 											<div className="flex items-center justify-center">
 												<img
 													src={asset.asset.imageUrl}
 													style={{
-														height: 140,
-														width: 140,
+														height: 160,
+														width: 160,
 													}}
-													className="rounded"
+													className="rounded object-fill"
 												/>
 											</div>
 											<div className="text-center space-y-1">
 												<div className="text-sm font-semibold truncate">{asset.asset.name}</div>
 												<div className="bg-green-960 text-green-940 py-1 text-sm font-semibold rounded">
-													Rarity Score: {asset.rarityScore.toFixed(2)}
+													Rarity Score: {asset.defaultScore.toFixed(2)}
 												</div>
 											</div>
 										</motion.div>
@@ -405,7 +411,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 										}}
 									>
 										<div className="flex flex-row items-center justify-between">
-											<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{filter.asset.rarityRank}</div>
+											<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{filter.asset.defaultRank}</div>
 											<div className="text-sm text-gray-200 font-bold">ID: {filter.asset.asset.tokenId}</div>
 										</div>
 										<div className="flex items-center justify-center">
@@ -421,7 +427,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 										<div className="text-center space-y-1">
 											<div className="text-sm font-semibold truncate">{filter.asset.asset.name}</div>
 											<div className="bg-green-960 text-green-940 py-1 text-sm font-semibold rounded">
-												Rarity Score: {filter.asset.rarityScore.toFixed(2)}
+												Rarity Score: {filter.asset.defaultScore.toFixed(2)}
 											</div>
 										</div>
 									</motion.div>

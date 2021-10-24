@@ -155,16 +155,16 @@ class OpenSea {
 
 					transactions.push(
 						prisma.asset.upsert({
-							where: { assetId: `${collection.slug}_${tokenId}` },
+							where: { assetId: `${collection.slug}|${tokenId}` },
 							update: {},
 							create: {
-								assetId: `${collection.slug}_${tokenId}`,
+								assetId: `${collection.slug}|${tokenId}`,
 								tokenId,
 								name: name ?? `${collection.name} #${tokenId}`,
 								imageUrl: asset.node.asset.imageUrl,
 								collectionId: collection.id,
 								traitIds: thisAssetTraits,
-								attributeCount: thisAssetTraitsCount
+								attributeCount: thisAssetTraitsCount,
 							},
 						}),
 					);

@@ -53,25 +53,26 @@ type Featured {
 }
 
 type Query {
-  asset(slug: String!, tokenId: Int!): Score
-  assets(page: Int!, slug: String!, take: Int!): [Score]
+  asset(slug: String!, tokenId: Int!): Rank
+  assets(page: Int!, slug: String!, take: Int!): [Rank]
   collection(slug: String!): Collection
   collections(orderBy: String, sortAscending: String): [Collection]
   featured: [Featured]
   upcoming: [Upcoming]
 }
 
-type Score {
+type Rank {
   asset: Asset
-  rarityRank: Int
-  rarityScore: Float
+  defaultRank: Int
+  defaultScore: Float
+  tokenId: String
   type: String
 }
 
 type Trait {
   attribute: Attribute
+  defaultScore: Float
   percentile: Float
-  rarityScore: Float
   traitCount: Int
   traitType: String
 }
