@@ -14,8 +14,8 @@ const Submit: NextPage = () => {
 
         <div>
           <div>
-            This form is only for your project to be listed on the <span className="font-bold">"Upcoming NFT Drops"</span> page. Your project will not
-            get any rankings or extra services we provide.
+            This form is only for your project to be listed on the <span className="font-bold">&quot;Upcoming NFT Drops&quot;</span> page. Your
+            project will not get any rankings or extra services we provide.
           </div>
         </div>
 

@@ -8,7 +8,7 @@ export const Upcoming = objectType({
     t.string('name');
     t.string('description');
     t.float('price');
-    t.nullable.date('releaseDate');
+    t.field('releaseDate', { type: 'DateTime' });
     t.string('currency');
     t.int('supply');
     t.nullable.string('twitterUsername');

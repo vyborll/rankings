@@ -71,8 +71,8 @@ const Upcoming: NextPage = () => {
 
         {loading &&
           Array.from({ length: 5 }).map((_, i) => (
-            <div className="space-y-4">
-              <Skeleton key={i} className="h-44" duration={2} count={1} />
+            <div key={i} className="space-y-4">
+              <Skeleton className="h-44" duration={2} count={1} />
             </div>
           ))}
 
