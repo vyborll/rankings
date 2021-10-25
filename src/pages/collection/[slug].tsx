@@ -122,7 +122,7 @@ interface Asset {
 	};
 }
 
-const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ slug, collection, source }) => {
+const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ slug, collection }) => {
 	const [page, setPage] = useState<number>(1);
 	const [assetsLoading, setAssetsLoading] = useState<boolean>(false);
 	const [filter, setFilter] = useState<{ type: string; asset: Asset | null }>({ type: 'default', asset: null });
@@ -265,7 +265,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 						<div className="space-y-4">
 							<div className="text-3xl font-bold">{collection.name}</div>
 							<div className="text-sm md:text-lg font-light">
-								<MDXRemote {...source!} components={components} />
+								{collection.description}
 							</div>
 						</div>
 
@@ -487,13 +487,12 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
 		};
 	}
 
-	const source = await renderMarkdown(collection?.description ?? '');
+	// const source = await renderMarkdown(collection?.description ?? '');
 
 	return {
 		props: {
 			slug,
 			collection,
-			source,
 		},
 	};
 };

@@ -8,7 +8,7 @@ import { StoreProvider } from 'easy-peasy';
 import store from '@root/store';
 
 export const client = new ApolloClient({
-  uri: 'https://nftranks.vercel.app/api/graphql',
+  uri: 'http://localhost:3000/api/graphql',
   cache: new InMemoryCache(),
 });
 
