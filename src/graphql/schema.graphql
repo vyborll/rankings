@@ -47,6 +47,11 @@ type Collection {
   twitterUsername: String
 }
 
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
 type Featured {
   collection: Collection
   slot: Int
@@ -57,8 +62,10 @@ type Query {
   assets(page: Int!, slug: String!, take: Int!): [Rank]
   collection(slug: String!): Collection
   collections(orderBy: String, sortAscending: String): [Collection]
+  collectionsLatest: [Collection]
   featured: [Featured]
   upcoming: [Upcoming]
+  upcomingFeatured: [Upcoming]
 }
 
 type Rank {
@@ -78,11 +85,14 @@ type Trait {
 }
 
 type Upcoming {
+  currency: String
   description: String
   discordUrl: String
   externalUrl: String
+  imageUrl: String
   name: String
   price: Float
+  releaseDate: DateTime
   supply: Int
   twitterUsername: String
 }

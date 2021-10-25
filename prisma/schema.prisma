@@ -21,6 +21,7 @@ model Admin {
 model Featured {
   id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
   slot         Int        @unique
+  active       Boolean    @default(false)
   collectionId String     @db.ObjectId
   collection   Collection @relation(fields: [collectionId], references: [id])
 }
