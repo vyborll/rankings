@@ -4,6 +4,8 @@ import { ExternalLinkIcon } from '@heroicons/react/outline';
 import moment from 'moment-timezone';
 import { motion } from 'framer-motion';
 
+import prisma from '@root/utils/lib/prisma';
+
 import Layout from '@root/ui/components/Layout';
 import Navbar from '@root/ui/components/Navbar';
 
