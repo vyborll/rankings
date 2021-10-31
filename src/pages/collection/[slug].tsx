@@ -1,14 +1,16 @@
 import type { GetServerSidePropsContext, InferGetServerSidePropsType, NextPage } from 'next';
-import React, { useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Skeleton from 'react-loading-skeleton';
-import { gql, useQuery, useApolloClient } from '@apollo/client';
-import { ExternalLinkIcon, SearchIcon, XIcon } from '@heroicons/react/outline';
+import { Dialog, Disclosure, Transition } from '@headlessui/react';
+import { ExternalLinkIcon, SearchIcon, XIcon, ChevronDownIcon, FilterIcon, ChevronRightIcon } from '@heroicons/react/outline';
 import { MDXRemote } from 'next-mdx-remote';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 import prisma from '@root/utils/lib/prisma';
+import { getAssets, getCollection } from '@root/utils/cache';
+
 import { useStoreState, useStoreActions } from '@root/store';
 
 import MarkdownLink from '@root/ui/components/Markdown/Link';
@@ -17,75 +19,6 @@ import Navbar from '@root/ui/components/Navbar';
 import { renderMarkdown } from '@root/utils/markdown';
 
 const components = { ...MarkdownLink };
-
-const getCollectionQuery = gql`
-	query Collection($slug: String!, $page: Int!) {
-		assets(slug: $slug, take: 25, page: $page) {
-			type
-			defaultRank
-			defaultScore
-			asset {
-				tokenId
-				name
-				imageUrl
-				traits {
-					traitType
-					traitCount
-					defaultScore
-					attribute {
-						attributeType
-					}
-				}
-			}
-		}
-	}
-`;
-
-const getAssetQuery = gql`
-	query Asset($slug: String!, $tokenId: Int!) {
-		asset(slug: $slug, tokenId: $tokenId) {
-			type
-			defaultRank
-			defaultScore
-			asset {
-				tokenId
-				name
-				imageUrl
-				traits {
-					traitType
-					traitCount
-					defaultScore
-					attribute {
-						attributeType
-					}
-				}
-			}
-		}
-	}
-`;
-
-const getAssetsQuery = gql`
-	query Assets($slug: String!, $page: Int!) {
-		assets(slug: $slug, take: 25, page: $page) {
-			type
-			defaultRank
-			defaultScore
-			asset {
-				tokenId
-				name
-				imageUrl
-				traits {
-					traitType
-					traitCount
-					defaultScore
-					attribute {
-						attributeType
-					}
-				}
-			}
-		}
-	}
-`;
 
 interface Collection {
 	name: string;
@@ -103,87 +36,201 @@ interface Collection {
 	numOwners: number;
 }
 
-interface Asset {
-	type: string;
+interface IAsset {
+	tokenId: string;
+	name: string;
+	imageUrl: string;
 	defaultRank: number;
 	defaultScore: number;
-	asset: {
-		tokenId: string;
-		name: string;
-		imageUrl: string;
-		traits: {
-			traitType: string;
-			traitCount: number;
-			defaultScore: number;
-			attribute: {
-				attributeType: string;
-			};
-		}[];
-	};
+	traits: {
+		attributeType: string;
+		traitType: string;
+		traitCount: number;
+		defaultScore: number;
+		percentile: number;
+	}[];
 }
 
-const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({ slug, collection }) => {
-	const [page, setPage] = useState<number>(1);
-	const [assetsLoading, setAssetsLoading] = useState<boolean>(false);
-	const [filter, setFilter] = useState<{ type: string; asset: Asset | null }>({ type: 'default', asset: null });
+const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({
+	collection,
+	attributes,
+	assets: initialAssets,
+	source,
+	maxPage,
+}) => {
+	const [data, setData] = useState<{
+		loading: boolean;
+		assets: IAsset[];
+		page: number;
+		maxPage: number;
+	}>({
+		loading: false,
+		assets: initialAssets ?? [],
+		page: 1,
+		maxPage: maxPage ?? 1,
+	});
 	const [search, setSearch] = useState<string>('');
-	const [assets, setAssets] = useState<Asset[]>([]);
-	// const [collection, setCollection] = useState<Collection>();
+	const [filters, setFilters] = useState(attributes!);
+	const [selectedFilters, setSelectedFilters] = useState<{ attribute: string; trait: string }[]>([]);
+	const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
 	const modal = useStoreState((state) => state.modal);
 	const setShow = useStoreActions((actions) => actions.modal.setShow);
 	const setAsset = useStoreActions((actions) => actions.modal.setAsset);
-	const client = useApolloClient();
-
-	const { loading } = useQuery(getCollectionQuery, {
-		variables: {
-			slug,
-			page: 1,
-		},
-		onCompleted: (data) => {
-			setAssets([...data.assets]);
-		},
-	});
 
 	const onSubmit = async (e: React.SyntheticEvent): Promise<void> => {
 		e.preventDefault();
+		if (data.loading) return;
+
 		if (!search || search === '') return;
 		if (isNaN(Number(search))) return;
+		if (data.assets.length === 1 && parseInt(data.assets[0].tokenId) === parseInt(search)) return;
 
-		const { data: assetData } = await client.query({
-			query: getAssetQuery,
-			variables: { slug, tokenId: Number(search) },
-		});
+		setData({ ...data, loading: true });
 
-		setFilter({ type: 'single', asset: assetData.asset as Asset });
+		try {
+			const response = await axios.get('/api/collection/asset', {
+				params: { slug: collection.slug, tokenId: Number(search) },
+			});
+
+			setData({ ...data, assets: [response.data.asset as IAsset], page: 1, maxPage: 1, loading: false });
+		} catch (err) {
+			console.error(err);
+			setData({ ...data, loading: false });
+		}
 	};
 
 	const onInput = (e: React.FormEvent<HTMLInputElement>): void => {
 		setSearch(e.currentTarget.value);
 	};
 
-	const clearInput = () => {
+	const clearInput = async () => {
 		setSearch('');
-		setFilter({ type: 'default', asset: null });
+		setData({ ...data, assets: initialAssets ?? [], page: 1, maxPage: maxPage ?? 1, loading: false });
 	};
 
-	const loadMore = async () => {
-		if (assetsLoading) return;
-		if (page >= collection!.totalSupply / 25) return;
+	const loadMore = async (): Promise<void> => {
+		if (data.loading) return;
+		if (data.page >= data.maxPage) return;
 
-		setAssetsLoading(true);
+		setData({ ...data, loading: true });
 
-		try {
-			const { data: assetsData } = await client.query({
-				query: getAssetsQuery,
-				variables: { slug, page: page + 1 },
+		if (selectedFilters.length === 0) {
+			try {
+				const response = await axios.get('/api/collection/assets', {
+					params: { slug: collection.slug, page: data.page + 1 },
+				});
+
+				setData({
+					...data,
+					assets: [...data.assets, ...response.data.assets],
+					page: response.data.page,
+					maxPage: response.data.maxPage,
+					loading: false,
+				});
+			} catch (err) {
+				setData({
+					...data,
+					loading: false,
+				});
+				console.error(err);
+			}
+		} else {
+			try {
+				const params = new URLSearchParams();
+
+				params.append('slug', collection.slug);
+				params.append('page', (data.page + 1).toString());
+				selectedFilters.map((f) => params.append(f.attribute, f.trait));
+
+				const response = await axios.get('/api/collection/assets', {
+					params,
+				});
+
+				setData({
+					...data,
+					assets: [...data.assets, ...response.data.assets],
+					page: response.data.page,
+					maxPage: response.data.maxPage,
+					loading: false,
+				});
+			} catch (err) {
+				setData({
+					...data,
+					loading: false,
+				});
+				console.error(err);
+			}
+		}
+	};
+
+	const selectTrait = async (e: React.FormEvent<HTMLInputElement>) => {
+		const [attribute, trait] = e.currentTarget.name.split('|');
+
+		const params = new URLSearchParams();
+
+		if (e.currentTarget.checked) {
+			const data = [...selectedFilters, { attribute, trait }];
+			params.append('slug', collection.slug);
+			params.append('page', '1');
+			data.map((d) => params.append(d.attribute, d.trait));
+
+			const updated = filters.map((x) => {
+				if (x.attributeType === attribute) {
+					const traits = x.trait.map((t) => {
+						if (t.traitType === trait) {
+							return { ...t, selected: true };
+						} else {
+							return { ...t };
+						}
+					});
+
+					return { ...x, trait: traits };
+				} else {
+					return { ...x };
+				}
 			});
 
-			setAssets([...assets, ...assetsData.assets]);
-			setPage(page + 1);
-		} catch (err) {
-			console.error(err);
-		} finally {
-			setAssetsLoading(false);
+			setFilters(updated);
+			setSelectedFilters(data ?? []);
+
+			const response = await axios.get('/api/collection/assets', {
+				params,
+			});
+
+			setData({ ...data, assets: response.data.assets ?? [], page: response.data.page, maxPage: response.data.maxPage, loading: false });
+		} else {
+			const data = [...selectedFilters.filter((x) => x.trait !== trait)];
+			params.append('slug', collection.slug);
+			params.append('page', '1');
+			data.map((d) => params.append(d.attribute, d.trait));
+
+			const updated = filters.map((x) => {
+				if (x.attributeType === attribute) {
+					const traits = x.trait.map((t) => {
+						if (t.traitType === trait) {
+							return { ...t, selected: false };
+						} else {
+							return { ...t };
+						}
+					});
+
+					return { ...x, trait: traits };
+				} else {
+					return { ...x };
+				}
+			});
+
+			setFilters(updated);
+			setSelectedFilters(data ?? []);
+
+			console.log(params);
+
+			const response = await axios.get('/api/collection/assets', {
+				params,
+			});
+
+			setData({ ...data, assets: response.data.assets, page: response.data.page, maxPage: response.data.maxPage, loading: false });
 		}
 	};
 
@@ -191,72 +238,150 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 		<>
 			<Navbar />
 
-			<div className="lg:max-w-7xl lg:mx-auto py-6 md:py-10 px-3 md:px-6 space-y-6">
-				{loading ? (
-					<>
-						<Skeleton className="w-full h-80 rounded" duration={2} count={1} />
+			<Transition.Root show={mobileFiltersOpen} as={Fragment}>
+				<Dialog as="div" className="fixed inset-0 flex z-40 lg:hidden" onClose={setMobileFiltersOpen}>
+					<Transition.Child
+						as={Fragment}
+						enter="transition-opacity ease-linear duration-300"
+						enterFrom="opacity-0"
+						enterTo="opacity-100"
+						leave="transition-opacity ease-linear duration-300"
+						leaveFrom="opacity-100"
+						leaveTo="opacity-0"
+					>
+						<Dialog.Overlay className="fixed inset-0 bg-black bg-opacity-25" />
+					</Transition.Child>
 
-						<div className="space-y-4">
-							<div className="w-96">
-								<Skeleton className="text-3xl font-bold" duration={2} count={1} />
+					<Transition.Child
+						as={Fragment}
+						enter="transition ease-in-out duration-300 transform"
+						enterFrom="-translate-x-full"
+						enterTo="translate-x-0"
+						leave="transition ease-in-out duration-300 transform"
+						leaveFrom="translate-x-0"
+						leaveTo="-translate-x-full"
+					>
+						<div className="mr-auto relative max-w-xs w-full h-full bg-dark-950 shadow-xl py-4 pb-12 flex flex-col overflow-y-auto">
+							<div className="px-4 flex items-center justify-between">
+								<h2 className="text-xl font-bold text-gray-200">Filters</h2>
+								<button
+									type="button"
+									className="-mr-2 w-10 h-10 p-2 rounded-md flex items-center justify-center text-gray-200 hover:text-gray-300"
+									onClick={() => setMobileFiltersOpen(false)}
+								>
+									<span className="sr-only">Close menu</span>
+									<XIcon className="h-6 w-6" aria-hidden="true" />
+								</button>
 							</div>
-							<div className="w-full h-14">
-								<Skeleton className="h-full text-lg font-light" duration={2} count={1} />
-							</div>
+
+							{/* Filters */}
+							<form className="mt-4 px-4">
+								{filters
+									?.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
+									.map((attribute) => (
+										<Disclosure as="div" key={attribute.attributeType} className="border-b border-divider-900 py-6">
+											{({ open }) => (
+												<>
+													<h3 className="-my-3 flow-root">
+														<Disclosure.Button className="py-2 w-full flex items-center text-sm text-gray-200 hover:text-gray-300">
+															<span className="mr-1 flex items-center">
+																{open ? (
+																	<ChevronDownIcon className="h-5 w-5" aria-hidden="true" />
+																) : (
+																	<ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+																)}
+															</span>
+															<span className="font-medium text-white">{attribute.attributeType}</span>
+														</Disclosure.Button>
+													</h3>
+													<Disclosure.Panel className="pt-6">
+														<div className="space-y-2">
+															{attribute.trait.map((trait, id) =>
+																trait.traitCount > 0 ? (
+																	<div key={trait.traitType} className="flex items-center">
+																		<input
+																			id={`filter-${attribute.attributeType}-${id}`}
+																			name={`${attribute.attributeType}|${trait.traitType}`}
+																			defaultValue={trait.traitType}
+																			type="checkbox"
+																			defaultChecked={trait.selected}
+																			className="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500"
+																			onChange={(e) => selectTrait(e)}
+																		/>
+																		<label htmlFor={`filter-${attribute.attributeType}-${id}`} className="ml-3 text-sm text-gray-100">
+																			{trait.traitType} ({trait.traitCount})
+																		</label>
+																	</div>
+																) : null,
+															)}
+														</div>
+													</Disclosure.Panel>
+												</>
+											)}
+										</Disclosure>
+									))}
+							</form>
 						</div>
+					</Transition.Child>
+				</Dialog>
+			</Transition.Root>
 
-						<div className="flex flex-row space-x-6 mb-14">
-							<div className="w-40">
-								<Skeleton className="h-8" duration={2} count={1} />
-							</div>
-							<div className="w-40">
-								<Skeleton className="h-8" duration={2} count={1} />
-							</div>
-							<div className="w-40">
-								<Skeleton className="h-8" duration={2} count={1} />
-							</div>
-						</div>
-
-						<div className="h-4" />
-
+			<div className="hidden lg:flex flex-1 h-screen overflow-hidden lg:w-64 py-6 fixed border-r border-divider-900">
+				<div className="flex-1 overflow-y-scroll px-6 pb-12 no-scrollbar">
+					<form className="hidden lg:block">
 						<div>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-								<Skeleton className="h-20" duration={2} count={1} />
-								<Skeleton className="h-20" duration={2} count={1} />
-								<Skeleton className="h-20" duration={2} count={1} />
-								<Skeleton className="h-20" duration={2} count={1} />
-							</div>
+							<div className="font-bold text-lg">Filters</div>
 						</div>
-
-						<div className="h-4" />
-
-						<div className="space-y-4">
-							<div className="w-60">
-								<Skeleton className="h-10" duration={2} count={1} />
-							</div>
-
-							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4 items-center">
-								<div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 relative rounded shadow-sm">
-									<Skeleton className="h-10" duration={2} count={1} />
-								</div>
-
-								<div className="h-full w-full">
-									<Skeleton className="h-10" duration={2} count={1} />
-								</div>
-							</div>
-						</div>
-
-						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-							{Array.from({ length: 25 }).map((_, i) => (
-								<div key={i}>
-									<Skeleton className="h-60" duration={2} count={1} />
-								</div>
+						{filters
+							?.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
+							.map((attribute) => (
+								<Disclosure as="div" key={attribute.attributeType} className="border-b border-divider-900 py-6">
+									{({ open }) => (
+										<>
+											<h3 className="-my-3 flow-root">
+												<Disclosure.Button className="py-2 w-full flex items-center text-sm text-gray-200 hover:text-gray-300">
+													<span className="mr-1 flex items-center">
+														{open ? (
+															<ChevronDownIcon className="h-5 w-5" aria-hidden="true" />
+														) : (
+															<ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+														)}
+													</span>
+													<span className="font-medium text-white">{attribute.attributeType}</span>
+												</Disclosure.Button>
+											</h3>
+											<Disclosure.Panel className="pt-6">
+												<div className="space-y-2">
+													{attribute.trait.map((trait, id) =>
+														trait.traitCount > 0 ? (
+															<div key={trait.traitType} className="flex items-center">
+																<input
+																	id={`filter-${attribute.attributeType}-${id}`}
+																	name={`${attribute.attributeType}|${trait.traitType}`}
+																	defaultValue={trait.traitType}
+																	type="checkbox"
+																	defaultChecked={trait.selected}
+																	className="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500"
+																	onChange={(e) => selectTrait(e)}
+																/>
+																<label htmlFor={`filter-${attribute.attributeType}-${id}`} className="ml-3 text-sm text-gray-100">
+																	{trait.traitType} ({trait.traitCount})
+																</label>
+															</div>
+														) : null,
+													)}
+												</div>
+											</Disclosure.Panel>
+										</>
+									)}
+								</Disclosure>
 							))}
-						</div>
-					</>
-				) : null}
+					</form>
+				</div>
+			</div>
 
-				{!loading && assets && collection ? (
+			<div className="lg:ml-64 p-6 space-y-6">
+				{data.assets && collection ? (
 					<>
 						<div className="relative w-full h-32 sm:h-40 md:h-60 lg:h-80">
 							<Image src={collection.bannerImageUrl ?? ''} layout="fill" className="object-cover rounded" />
@@ -265,7 +390,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 						<div className="space-y-4">
 							<div className="text-3xl font-bold">{collection.name}</div>
 							<div className="text-sm md:text-lg font-light">
-								{collection.description}
+								<MDXRemote {...(source as any)} components={components} />
 							</div>
 						</div>
 
@@ -326,10 +451,20 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 						</div>
 
 						<div>
-							<div className="text-xl md:text-2xl font-semibold mt-14 mb-4">{collection.totalSupply.toLocaleString()} Total Assets</div>
+							<div className="flex flex-row items-center justify-between mt-14 mb-4">
+								<div className="text-xl md:text-2xl font-semibold">{collection.totalSupply.toLocaleString()} Total Assets</div>
+								<button
+									className="block lg:hidden"
+									onClick={() => {
+										setMobileFiltersOpen(true);
+									}}
+								>
+									<FilterIcon className="h-6 w-6 font-bold" />
+								</button>
+							</div>
 							<form onSubmit={onSubmit}>
-								<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4 items-center">
-									<div className="col-span-1 sm:col-span-2 md:col-span-3 lg:col-span-4 relative rounded shadow-sm">
+								<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4 items-center">
+									<div className="col-span-1 sm:col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 relative rounded shadow-sm">
 										<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
 											<span className="sm:text-sm">
 												<SearchIcon className="h-4 w-4 text-white" />
@@ -351,8 +486,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 									<div className="h-full w-full">
 										<button
 											type="submit"
-											className={`bg-green-960 rounded h-full w-full ${assetsLoading ? 'opacity-50' : ''}`}
-											disabled={assetsLoading}
+											className={`bg-green-960 rounded h-full w-full ${data.loading ? 'opacity-50' : ''}`}
+											disabled={data.loading}
 										>
 											Search
 										</button>
@@ -360,85 +495,54 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 								</div>
 							</form>
 
-							{assets.length < 1 ? (
+							{data.assets.length < 1 ? (
 								<div className="h-64 flex items-center justify-center">
 									<div className="text-3xl font-bold">No Assets Found</div>
 								</div>
 							) : null}
 
-							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-								{filter.type === 'default' &&
-									assets.map((asset: any, i: number) => (
-										<motion.div
-											whileHover={{ y: '-2%' }}
-											key={i}
-											className="bg-dark-800 p-4 rounded space-y-2 cursor-pointer"
-											onClick={() => {
-												setAsset(asset);
-												setShow(true);
-											}}
-										>
-											<div className="flex flex-row items-center justify-between">
-												<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{asset.defaultRank}</div>
-												<div className="text-sm text-gray-200 font-bold">ID: {asset.asset.tokenId}</div>
-											</div>
-											<div className="flex items-center justify-center">
-												<img
-													src={asset.asset.imageUrl}
-													style={{
-														height: 160,
-														width: 160,
-													}}
-													className="rounded object-fill"
-												/>
-											</div>
-											<div className="text-center space-y-1">
-												<div className="text-sm font-semibold truncate">{asset.asset.name}</div>
-												<div className="bg-green-960 text-green-940 py-1 text-sm font-semibold rounded">
-													Rarity Score: {asset.defaultScore.toFixed(2)}
-												</div>
-											</div>
-										</motion.div>
-									))}
-
-								{filter.type === 'single' && filter.asset ? (
+							<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+								{data.assets.map((asset: any, i: number) => (
 									<motion.div
 										whileHover={{ y: '-2%' }}
+										key={i}
 										className="bg-dark-800 p-4 rounded space-y-2 cursor-pointer"
 										onClick={() => {
-											setAsset(filter.asset!);
+											setAsset(asset);
 											setShow(true);
 										}}
 									>
 										<div className="flex flex-row items-center justify-between">
-											<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{filter.asset.defaultRank}</div>
-											<div className="text-sm text-gray-200 font-bold">ID: {filter.asset.asset.tokenId}</div>
+											<div className="flex flex-row items-center text-sm text-green-940 font-bold">#{asset.defaultRank}</div>
+											<div className="text-sm text-gray-200 font-bold">ID: {asset.tokenId}</div>
 										</div>
 										<div className="flex items-center justify-center">
-											<img
-												src={filter.asset.asset.imageUrl}
-												style={{
-													height: 140,
-													width: 140,
-												}}
-												className="rounded"
-											/>
+											{collection.slug === 'meebits' ? (
+												<img
+													src={asset.imageUrl}
+													style={{
+														height: 160,
+														width: 140,
+													}}
+													className="rounded object-fill"
+												/>
+											) : null}
 										</div>
 										<div className="text-center space-y-1">
-											<div className="text-sm font-semibold truncate">{filter.asset.asset.name}</div>
+											<div className="text-sm font-semibold truncate">{asset.name}</div>
 											<div className="bg-green-960 text-green-940 py-1 text-sm font-semibold rounded">
-												Rarity Score: {filter.asset.defaultScore.toFixed(2)}
+												Rarity Score: {asset.defaultScore.toFixed(2)}
 											</div>
 										</div>
 									</motion.div>
-								) : null}
+								))}
 							</div>
 
-							{page < Math.ceil(collection.totalSupply / 25) ? (
+							{data.page < data.maxPage ? (
 								<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
 									<button
-										className={`bg-green-960 text-green-940 col-start-3 rounded py-3 ${assetsLoading ? 'opacity-50' : ''}`}
-										disabled={assetsLoading}
+										className={`bg-green-960 text-green-940 col-start-3 rounded py-3 ${data.loading ? 'opacity-50' : ''}`}
+										disabled={data.loading}
 										onClick={() => loadMore()}
 									>
 										Load More
@@ -458,27 +562,9 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
 	const slug = ctx.params?.slug as string;
 
-	const collection = await prisma.collection.findUnique({
-		where: { slug },
-		select: {
-			name: true,
-			description: true,
-			contractAddress: true,
-			externalUrl: true,
-			discordUrl: true,
-			twitterUsername: true,
-			slug: true,
-			bannerImageUrl: true,
-			totalVolume: true,
-			totalSupply: true,
-			sevenDayVolume: true,
-			sevenDaySales: true,
-			numOwners: true,
-		},
-	});
-
+	const collection = await getCollection(slug.toLowerCase());
 	if (!collection) {
-		ctx.res.setHeader('location', 'https://nftranks.gg');
+		ctx.res.setHeader('location', 'https://nftrankings.net');
 		ctx.res.statusCode = 302;
 		ctx.res.end();
 
@@ -487,12 +573,29 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
 		};
 	}
 
-	// const source = await renderMarkdown(collection?.description ?? '');
+	const attributes = await prisma.attribute.findMany({
+		where: { collection: { slug: collection.slug } },
+		select: {
+			attributeType: true,
+			trait: {
+				select: {
+					traitType: true,
+					traitCount: true,
+				},
+			},
+		},
+	});
+
+	const source = await renderMarkdown(collection.description);
+	const { assets, count } = await getAssets(slug.toLowerCase(), 1);
 
 	return {
 		props: {
-			slug,
 			collection,
+			attributes: attributes.map((attribute) => ({ ...attribute, trait: attribute.trait.map((trait) => ({ ...trait, selected: false })) })) ?? [],
+			assets,
+			source,
+			maxPage: Math.ceil(count / 25) ?? 0,
 		},
 	};
 };

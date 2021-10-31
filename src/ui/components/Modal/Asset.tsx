@@ -47,7 +47,7 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 						>
 							<div className="inline-block w-full max-w-2xl p-6 my-10 overflow-hidden text-left align-middle transition-all transform bg-dark-900 shadow-xl rounded">
 								<Dialog.Title as="h3" className="text-xl text-center font-semibold mb-4">
-									{storeAsset?.asset.name}
+									{storeAsset?.name}
 								</Dialog.Title>
 
 								<div className="flex flex-col md:flex-row md:space-x-4 md:space-y-0 space-y-4">
@@ -55,9 +55,9 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 										<div className="flex items-center justify-center bg-green-960 text-green-940 rounded px-4 md:px-0 py-1">
 											Rank: <span className="font-bold ml-1">#{storeAsset?.defaultRank}</span>
 										</div>
-										<img style={{ height: 160, width: 160 }} src={storeAsset?.asset.imageUrl} className="rounded" />
+										<img style={{ height: 160, width: 160 }} src={storeAsset?.imageUrl} className="rounded" />
 										<div>
-											<a target="_blank" href={`https://opensea.io/assets/${contractAddress}/${storeAsset?.asset.tokenId}`}>
+											<a target="_blank" href={`https://opensea.io/assets/${contractAddress}/${storeAsset?.tokenId}`}>
 												<div className="text-sm font-semibold text-center bg-blue-960 py-2 px-4 rounded w-full">View on OpenSea</div>
 											</a>
 										</div>
@@ -82,12 +82,12 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 										<div>
 											<div className="space-y-3">
 												{sortType === 'score'
-													? [...(storeAsset?.asset.traits ?? [])]
+													? [...(storeAsset?.traits ?? [])]
 															.sort((a, b) => b.defaultScore - a.defaultScore)
 															.map((trait, i) => (
 																<div key={i} className="flex flex-col space-y-1">
 																	<div className="flex flex-row justify-between">
-																		<div className="font-semibold">{trait.attribute.attributeType}</div>
+																		<div className="font-semibold">{trait.attributeType}</div>
 																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
 																	</div>
 																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
@@ -99,12 +99,12 @@ const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
 													: null}
 
 												{sortType === 'name'
-													? [...(storeAsset?.asset.traits ?? [])]
-															.sort((a, b) => a.attribute.attributeType.localeCompare(b.attribute.attributeType))
+													? [...(storeAsset?.traits ?? [])]
+															.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
 															.map((trait, i) => (
 																<div key={i} className="flex flex-col space-y-1">
 																	<div className="flex flex-row justify-between">
-																		<div className="font-semibold">{trait.attribute.attributeType}</div>
+																		<div className="font-semibold">{trait.attributeType}</div>
 																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
 																	</div>
 																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">

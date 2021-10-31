@@ -97,16 +97,18 @@ model Upcoming {
 model Asset {
   id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
   assetId        String     @unique
+  slug           String
   tokenId        String
   name           String
   imageUrl       String
   attributeCount Int
-  attributeScore Float?
+  defaultScore   Float
+  defaultRank    Int
+  metadata       Json[]
   collectionId   String     @db.ObjectId
   collection     Collection @relation(fields: [collectionId], references: [id])
-  traitIds       String[]   @db.Array(String)
+  traitIds       String[]   @db.Array(ObjectId)
   traits         Trait[]    @relation(fields: [traitIds])
-  rank           Rank[]
 }
 
 model Attribute {
@@ -120,25 +122,15 @@ model Attribute {
 }
 
 model Trait {
-  id           String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  traitId      String    @unique
-  traitType    String
-  traitCount   Int
-  percentile   Float?
-  defaultScore Float?
-  attributeId  String    @db.String
-  attribute    Attribute @relation(fields: [attributeId], references: [attributeId])
-  assetIds     String[]  @db.Array(String)
-  assets       Asset[]   @relation(fields: [assetIds])
-}
-
-model Rank {
-  id           String @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  rankId       String @unique
-  tokenId      String
-  type         String
-  defaultScore Float
-  defaultRank  Int
-  assetId      String @db.ObjectId
-  asset        Asset  @relation(fields: [assetId], references: [id])
+  id            String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  traitId       String    @unique
+  attributeType String
+  traitType     String
+  traitCount    Int
+  percentile    Float
+  defaultScore  Float
+  attributeId   String    @db.ObjectId
+  attribute     Attribute @relation(fields: [attributeId], references: [id])
+  assetIds      String[]  @db.Array(ObjectId)
+  assets        Asset[]   @relation(fields: [assetIds])
 }

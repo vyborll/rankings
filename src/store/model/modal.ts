@@ -1,22 +1,18 @@
 import { Action, action } from 'easy-peasy';
 
 export interface IAsset {
-	type: string;
+	tokenId: string;
+	name: string;
+	imageUrl: string;
 	defaultRank: number;
 	defaultScore: number;
-	asset: {
-		tokenId: string;
-		name: string;
-		imageUrl: string;
-		traits: {
-			traitType: string;
-			traitCount: number;
-			defaultScore: number;
-			attribute: {
-				attributeType: string;
-			};
-		}[];
-	};
+	traits: {
+		attributeType: string;
+		traitType: string;
+		traitCount: number;
+		defaultScore: number;
+		percentile: number;
+	}[];
 }
 
 export interface IModal {
@@ -40,7 +36,7 @@ const modal: IModal = {
 	sortType: 'score',
 	setSortType: action((state, payload) => {
 		state.sortType = payload;
-		state.asset?.asset.traits.sort((a, b) => b.defaultScore - a.defaultScore);
+		state.asset?.traits.sort((a, b) => b.defaultScore - a.defaultScore);
 	}),
 };
 

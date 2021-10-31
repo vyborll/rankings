@@ -1,5 +1,5 @@
 {
-	"name": "nftranks",
+	"name": "nftrankings",
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
@@ -24,12 +24,14 @@
 		"@prisma/client": "2.26",
 		"@tailwindcss/line-clamp": "^0.2.1",
 		"apollo-server-micro": "^3.3.0",
+		"axios": "^0.24.0",
 		"bson": "^4.5.2",
 		"easy-peasy": "^5.0.3",
 		"framer-motion": "^4.1.17",
 		"graphql": "^15.5.3",
 		"graphql-scalars": "^1.12.0",
 		"graphql-tag": "^2.12.5",
+		"ioredis": "^4.28.0",
 		"lodash": "^4.17.21",
 		"micro": "^9.3.4",
 		"moment-timezone": "^0.5.33",
@@ -44,6 +46,7 @@
 	"devDependencies": {
 		"@types/app-root-path": "^1.2.4",
 		"@types/graphql": "^14.5.0",
+		"@types/ioredis": "^4.27.8",
 		"@types/lodash": "^4.14.175",
 		"@types/nprogress": "^0.2.0",
 		"@types/react": "17.0.20",

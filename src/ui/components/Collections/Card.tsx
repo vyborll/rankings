@@ -1,6 +1,11 @@
 import type { CollectionCard } from '@root/types';
 import Link from 'next/link';
 import { ExternalLinkIcon } from '@heroicons/react/outline';
+import { MDXRemote } from 'next-mdx-remote';
+
+import MarkdownLink from '@root/ui/components/Markdown/Link';
+
+const components = { ...MarkdownLink };
 
 interface Props {
 	featured: boolean;
@@ -21,7 +26,9 @@ const Card: React.FC<Props> = ({ featured, collection }) => {
 						<div className="bg-dark-900 rounded-full text-center text-sm py-1 font-thin w-40">{collection.totalSupply.toLocaleString()} Assets</div>
 					</div>
 				</div>
-				<div className="h-20 text-sm line-clamp-4">{collection.description}</div>
+				<div className="h-20 text-sm line-clamp-4">
+					<MDXRemote {...(collection.description as any)} components={components} />
+				</div>
 				<div className="h-5 flex flex-row space-x-4">
 					{collection.externalUrl ? (
 						<Link href={collection.externalUrl}>
