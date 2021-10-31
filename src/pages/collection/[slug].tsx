@@ -526,7 +526,16 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 													}}
 													className="rounded object-fill"
 												/>
-											) : null}
+											) : (
+												<img
+													src={asset.imageUrl}
+													style={{
+														height: 160,
+														width: 160,
+													}}
+													className="rounded object-fill"
+												/>
+											)}
 										</div>
 										<div className="text-center space-y-1">
 											<div className="text-sm font-semibold truncate">{asset.name}</div>

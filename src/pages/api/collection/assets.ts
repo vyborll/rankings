@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+import prisma from '@root/utils/lib/prisma';
 import { getAssets } from '@root/utils/cache';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
