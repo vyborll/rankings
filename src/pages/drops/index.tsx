@@ -24,8 +24,8 @@ const Upcoming: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>>
 
 					<div className="max-w-3xl mx-auto text-center space-y-2">
 						<div>
-							You can submit your upcoming NFT project to be listed on the "Upcoming NFT Drops" page for free. Just fill out the form below with all
-							the required information for it to be listed.
+							You can submit your upcoming NFT project to be listed on the &quot;Upcoming NFT Drops&quot; page for free. Just fill out the form below
+							with all the required information for it to be listed.
 						</div>
 						<div>
 							<Link href={'/drops/submit'}>
