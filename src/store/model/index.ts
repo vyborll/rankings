@@ -1,12 +1,11 @@
 import modal, { IModal } from './modal';
 
 export interface IStoreModel {
-  modal: IModal
+  modal: IModal;
 }
 
 const model: IStoreModel = {
-  modal
+  modal,
 };
-
 
 export default model;

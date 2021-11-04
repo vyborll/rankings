@@ -207,8 +207,8 @@ export const getAssets = async (slug: string, page: number) => {
 			};
 		}
 
-		await redis.set(`${slug}|assets|${page}`, JSON.stringify(assets), 'EX', ONE_HOUR * 2);
-		await redis.set(`${slug}|assets|counts`, count, 'EX', ONE_HOUR * 2);
+		await redis.set(`${slug}|assets|${page}`, JSON.stringify(assets), 'EX', ONE_HOUR);
+		await redis.set(`${slug}|assets|counts`, count, 'EX', ONE_HOUR);
 
 		return {
 			assets,

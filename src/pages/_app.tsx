@@ -16,12 +16,12 @@ import '../../styles/globals.css';
 import 'nprogress/nprogress.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
-	return (
-		<StoreProvider store={store}>
-			<SkeletonTheme color="#95959a">
-				<Component {...pageProps} />
-			</SkeletonTheme>
-		</StoreProvider>
-	);
+  return (
+    <StoreProvider store={store}>
+      <SkeletonTheme color="rgba(50, 53, 62, 0.75)" highlightColor="rgba(50, 53, 62, 1)">
+        <Component {...pageProps} />
+      </SkeletonTheme>
+    </StoreProvider>
+  );
 }
 export default MyApp;

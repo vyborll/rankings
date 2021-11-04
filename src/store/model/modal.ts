@@ -1,43 +1,43 @@
 import { Action, action } from 'easy-peasy';
 
 export interface IAsset {
-	tokenId: string;
-	name: string;
-	imageUrl: string;
-	defaultRank: number;
-	defaultScore: number;
-	traits: {
-		attributeType: string;
-		traitType: string;
-		traitCount: number;
-		defaultScore: number;
-		percentile: number;
-	}[];
+  tokenId: string;
+  name: string;
+  imageUrl: string;
+  defaultRank: number;
+  defaultScore: number;
+  traits: {
+    attributeType: string;
+    traitType: string;
+    traitCount: number;
+    defaultScore: number;
+    percentile: number;
+  }[];
 }
 
 export interface IModal {
-	show: boolean;
-	setShow: Action<IModal, boolean>;
-	asset: IAsset | null;
-	setAsset: Action<IModal, IAsset>;
-	sortType: string;
-	setSortType: Action<IModal, string>;
+  show: boolean;
+  setShow: Action<IModal, boolean>;
+  asset: IAsset | null;
+  setAsset: Action<IModal, IAsset>;
+  sortType: string;
+  setSortType: Action<IModal, string>;
 }
 
 const modal: IModal = {
-	show: false,
-	setShow: action((state, payload) => {
-		state.show = payload;
-	}),
-	asset: null,
-	setAsset: action((state, payload) => {
-		state.asset = payload;
-	}),
-	sortType: 'score',
-	setSortType: action((state, payload) => {
-		state.sortType = payload;
-		state.asset?.traits.sort((a, b) => b.defaultScore - a.defaultScore);
-	}),
+  show: false,
+  setShow: action((state, payload) => {
+    state.show = payload;
+  }),
+  asset: null,
+  setAsset: action((state, payload) => {
+    state.asset = payload;
+  }),
+  sortType: 'score',
+  setSortType: action((state, payload) => {
+    state.sortType = payload;
+    state.asset?.traits.sort((a, b) => b.defaultScore - a.defaultScore);
+  }),
 };
 
 export default modal;

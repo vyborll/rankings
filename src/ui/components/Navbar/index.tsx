@@ -71,7 +71,7 @@ const Navbar: React.FC = () => {
 						<div className="sm:hidden flex flex-1 items-center justify-center">
 							<Link href="/">
 								<a className="text-2xl font-black uppercase italic">
-									NFT<span className="text-green-940">Ranks</span>
+									NFT<span className="text-green-940">Rankings</span>
 								</a>
 							</Link>
 						</div>

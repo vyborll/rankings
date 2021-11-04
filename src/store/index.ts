@@ -1,5 +1,5 @@
-import { createStore, createTypedHooks } from 'easy-peasy'
-import model, { IStoreModel } from './model'
+import { createStore, createTypedHooks } from 'easy-peasy';
+import model, { IStoreModel } from './model';
 
 const { useStoreActions, useStoreState, useStoreDispatch } = createTypedHooks<IStoreModel>();
 
