@@ -2,52 +2,40 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+  provider             = "mysql"
+  url                  = env("DATABASE_URL")
+  shadowDatabaseUrl    = env("SHADOW_DATABASE_URL")
+  referentialIntegrity = "prisma"
 }
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["mongoDb"]
-}
-
-model Admin {
-  id       String @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  email    String @unique
-  password String
-  name     String @default("Name")
+  previewFeatures = ["referentialIntegrity", "filterJson"]
 }
 
 model Featured {
-  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id           String     @id @default(uuid())
   slot         Int        @unique
   active       Boolean    @default(false)
-  collectionId String     @db.ObjectId
-  collection   Collection @relation(fields: [collectionId], references: [id])
-}
-
-model Collections {
-  id        String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
-  type      String   @unique
-  slugs     String[]
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime   @default(now())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 }
 
 model Collection {
-  id                    String      @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id                    String      @id @default(uuid())
   slug                  String      @unique
   show                  Boolean     @default(false)
   contractAddress       String
   name                  String
-  description           String
+  description           String      @db.VarChar(4000)
   bannerImageUrl        String?
   imageUrl              String?
   largeImageUrl         String?
   discordUrl            String?
   externalUrl           String?
   twitterUsername       String?
-  instagramUsername     String?
   oneDayVolume          Float
   oneDayChange          Float
   oneDaySales           Int
@@ -66,21 +54,21 @@ model Collection {
   numOwners             Int
   averagePrice          Float
   numReports            Int
-  marketCap             Float
-  floorPrice            Float
+  marketCap             Float?
+  floorPrice            Float?
   updatedAt             DateTime    @updatedAt
   createdAt             DateTime    @default(now())
-  asset                 Asset[]
-  attribute             Attribute[]
-  featured              Featured[]
+  featureds             Featured[]
+  assets                Asset[]
+  attributes            Attribute[]
 }
 
 model Upcoming {
-  id              String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id              String    @id @default(uuid())
   featured        Boolean   @default(false)
   imageUrl        String
   name            String
-  description     String
+  description     String    @db.VarChar(500)
   presalePrice    Float?
   presaleDate     DateTime?
   price           Float
@@ -95,7 +83,7 @@ model Upcoming {
 }
 
 model Asset {
-  id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id             String     @id @default(uuid())
   assetId        String     @unique
   slug           String
   tokenId        String
@@ -104,33 +92,37 @@ model Asset {
   attributeCount Int
   defaultScore   Float
   defaultRank    Int
-  metadata       Json[]
-  collectionId   String     @db.ObjectId
-  collection     Collection @relation(fields: [collectionId], references: [id])
-  traitIds       String[]   @db.Array(ObjectId)
-  traits         Trait[]    @relation(fields: [traitIds])
+  metadata       Json
+  collectionId   String
+  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  traits         Trait[]
+
+  @@index([slug])
 }
 
 model Attribute {
-  id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id             String     @id @default(uuid())
   attributeId    String     @unique
   attributeType  String
-  attributeCount Int?       @default(0)
-  collectionId   String     @db.ObjectId
-  collection     Collection @relation(fields: [collectionId], references: [id])
-  trait          Trait[]
+  attributeCount Int        @default(0)
+  collectionId   String
+  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  traits         Trait[]
+
+  @@index([collectionId])
 }
 
 model Trait {
-  id            String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  id            String    @id @default(uuid())
   traitId       String    @unique
   attributeType String
   traitType     String
   traitCount    Int
   percentile    Float
   defaultScore  Float
-  attributeId   String    @db.ObjectId
-  attribute     Attribute @relation(fields: [attributeId], references: [id])
-  assetIds      String[]  @db.Array(ObjectId)
-  assets        Asset[]   @relation(fields: [assetIds])
+  attributeId   String
+  attribute     Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  assets        Asset[]
+
+  @@index([attributeId])
 }

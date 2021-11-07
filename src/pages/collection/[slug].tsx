@@ -1,5 +1,5 @@
 import type { GetServerSidePropsContext, InferGetServerSidePropsType, NextPage } from 'next';
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
@@ -16,8 +16,7 @@ import { motion } from 'framer-motion';
 import Skeleton from 'react-loading-skeleton';
 import axios from 'axios';
 
-import prisma from '@root/utils/lib/prisma';
-import { getAssets, getCollection } from '@root/utils/cache';
+import { getAssets, getAttributes, getCollection } from '@root/utils/cache';
 
 import { useStoreState, useStoreActions } from '@root/store';
 
@@ -25,6 +24,7 @@ import MarkdownLink from '@root/ui/components/Markdown/Link';
 import Asset from '@root/ui/components/Modal/Asset';
 import Navbar from '@root/ui/components/Navbar';
 import { renderMarkdown } from '@root/utils/markdown';
+import Pagination from '@root/ui/components/Pagination';
 
 const components = { ...MarkdownLink };
 
@@ -50,32 +50,22 @@ interface IAsset {
   imageUrl: string;
   defaultRank: number;
   defaultScore: number;
-  traits: {
-    attributeType: string;
-    traitType: string;
-    traitCount: number;
-    defaultScore: number;
-    percentile: number;
-  }[];
+  metadata: { [key: string]: string }[];
 }
 
 const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({
   collection,
   attributes,
   assets: initialAssets,
+  scores,
   source,
   maxPage,
 }) => {
-  const [data, setData] = useState<{
-    loading: boolean;
-    assets: IAsset[];
-    page: number;
-    maxPage: number;
-  }>({
+  const [pagination, setPagination] = useState({
     loading: false,
-    assets: initialAssets ?? [],
-    page: 1,
+    currentPage: 1,
     maxPage: maxPage ?? 1,
+    assets: initialAssets ?? [],
   });
   const [search, setSearch] = useState<string>('');
   const [filters, setFilters] = useState(attributes!);
@@ -88,31 +78,91 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
   const setShow = useStoreActions(actions => actions.modal.setShow);
   const setAsset = useStoreActions(actions => actions.modal.setAsset);
 
+  const onPageChange = async (page: number): Promise<void> => {
+    if (pagination.loading) return;
+    if (pagination.currentPage >= pagination.maxPage) return;
+    if (pagination.currentPage === page) return;
+
+    setPagination({ ...pagination, currentPage: page, loading: true });
+
+    if (selectedFilters.length === 0) {
+      try {
+        const response = await axios.get('/api/collection/assets', {
+          params: { slug: collection?.slug ?? '', page },
+        });
+
+        setPagination({
+          ...pagination,
+          currentPage: page,
+          maxPage: response.data.maxPage,
+          assets: response.data.assets,
+          loading: false,
+        });
+      } catch (err) {
+        console.error(err);
+        setPagination({
+          ...pagination,
+          loading: false,
+        });
+      }
+    } else {
+      try {
+        const params = new URLSearchParams();
+
+        params.append('slug', collection?.slug ?? '');
+        params.append('page', page.toString());
+        selectedFilters.map(s => params.append(s.attribute, s.trait));
+
+        const response = await axios.get('/api/collection/assets', {
+          params,
+        });
+
+        setPagination({
+          ...pagination,
+          currentPage: page,
+          maxPage: response.data.maxPage,
+          assets: response.data.assets,
+          loading: false,
+        });
+      } catch (err) {
+        console.error(err);
+        setPagination({
+          ...pagination,
+          loading: false,
+        });
+      }
+    }
+  };
+
   const onSubmit = async (e: React.SyntheticEvent): Promise<void> => {
     e.preventDefault();
-    if (data.loading) return;
+    if (pagination.loading) return;
 
     if (!search || search === '') return;
     if (isNaN(Number(search))) return;
-    if (data.assets.length === 1 && parseInt(data.assets[0].tokenId) === parseInt(search)) return;
+    if (
+      pagination.assets.length === 1 &&
+      parseInt(pagination.assets[0].tokenId) === parseInt(search)
+    )
+      return;
 
-    setData({ ...data, loading: true });
+    setPagination({ ...pagination, loading: true });
 
     try {
       const response = await axios.get('/api/collection/asset', {
-        params: { slug: collection.slug, tokenId: Number(search) },
+        params: { slug: collection?.slug ?? '', tokenId: Number(search) },
       });
 
-      setData({
-        ...data,
+      setPagination({
+        ...pagination,
         assets: [response.data.asset as IAsset],
-        page: 1,
+        currentPage: 1,
         maxPage: 1,
         loading: false,
       });
     } catch (err) {
       console.error(err);
-      setData({ ...data, loading: false });
+      setPagination({ ...pagination, loading: false });
     }
   };
 
@@ -122,68 +172,14 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
   const clearInput = async () => {
     setSearch('');
-    setData({
-      ...data,
+
+    setPagination({
+      ...pagination,
       assets: initialAssets ?? [],
-      page: 1,
+      currentPage: 1,
       maxPage: maxPage ?? 1,
       loading: false,
     });
-  };
-
-  const loadMore = async (): Promise<void> => {
-    if (data.loading) return;
-    if (data.page >= data.maxPage) return;
-
-    setData({ ...data, loading: true });
-
-    if (selectedFilters.length === 0) {
-      try {
-        const response = await axios.get('/api/collection/assets', {
-          params: { slug: collection.slug, page: data.page + 1 },
-        });
-
-        setData({
-          ...data,
-          assets: [...data.assets, ...response.data.assets],
-          page: response.data.page,
-          maxPage: response.data.maxPage,
-          loading: false,
-        });
-      } catch (err) {
-        setData({
-          ...data,
-          loading: false,
-        });
-        console.error(err);
-      }
-    } else {
-      try {
-        const params = new URLSearchParams();
-
-        params.append('slug', collection.slug);
-        params.append('page', (data.page + 1).toString());
-        selectedFilters.map(f => params.append(f.attribute, f.trait));
-
-        const response = await axios.get('/api/collection/assets', {
-          params,
-        });
-
-        setData({
-          ...data,
-          assets: [...data.assets, ...response.data.assets],
-          page: response.data.page,
-          maxPage: response.data.maxPage,
-          loading: false,
-        });
-      } catch (err) {
-        setData({
-          ...data,
-          loading: false,
-        });
-        console.error(err);
-      }
-    }
   };
 
   const selectTrait = async (e: React.FormEvent<HTMLInputElement>) => {
@@ -191,17 +187,17 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
     const params = new URLSearchParams();
 
-    setData({ ...data, loading: true });
+    setPagination({ ...pagination, loading: true });
 
     if (e.currentTarget.checked) {
       const data = [...selectedFilters, { attribute, trait }];
-      params.append('slug', collection.slug);
+      params.append('slug', collection?.slug ?? '');
       params.append('page', '1');
       data.map(d => params.append(d.attribute, d.trait));
 
-      const updated = filters.map(x => {
+      const updated = filters.map((x: any) => {
         if (x.attributeType === attribute) {
-          const traits = x.trait.map(t => {
+          const traits = x.trait.map((t: any) => {
             if (t.traitType === trait) {
               return { ...t, selected: true };
             } else {
@@ -222,22 +218,22 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
         params,
       });
 
-      setData({
-        ...data,
+      setPagination({
+        ...pagination,
         assets: response.data.assets ?? [],
-        page: response.data.page,
+        currentPage: response.data.page,
         maxPage: response.data.maxPage,
         loading: false,
       });
     } else {
       const data = [...selectedFilters.filter(x => x.trait !== trait)];
-      params.append('slug', collection.slug);
+      params.append('slug', collection?.slug ?? '');
       params.append('page', '1');
       data.map(d => params.append(d.attribute, d.trait));
 
-      const updated = filters.map(x => {
+      const updated = filters.map((x: any) => {
         if (x.attributeType === attribute) {
-          const traits = x.trait.map(t => {
+          const traits = x.trait.map((t: any) => {
             if (t.traitType === trait) {
               return { ...t, selected: false };
             } else {
@@ -254,16 +250,14 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
       setFilters(updated);
       setSelectedFilters(data ?? []);
 
-      console.log(params);
-
       const response = await axios.get('/api/collection/assets', {
         params,
       });
 
-      setData({
-        ...data,
+      setPagination({
+        ...pagination,
         assets: response.data.assets,
-        page: response.data.page,
+        currentPage: response.data.page,
         maxPage: response.data.maxPage,
         loading: false,
       });
@@ -317,8 +311,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
               {/* Filters */}
               <form className="mt-4 px-4">
                 {filters
-                  ?.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
-                  .map(attribute => (
+                  ?.sort((a: any, b: any) => a.attributeType.localeCompare(b.attributeType))
+                  .map((attribute: any) => (
                     <Disclosure
                       as="div"
                       key={attribute.attributeType}
@@ -342,7 +336,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                           </h3>
                           <Disclosure.Panel className="pt-6">
                             <div className="space-y-2">
-                              {attribute.trait.map((trait, id) =>
+                              {attribute.trait.map((trait: any, id: any) =>
                                 trait.traitCount > 0 ? (
                                   <div key={trait.traitType} className="flex items-center">
                                     <input
@@ -382,8 +376,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
               <div className="font-bold text-lg">Filters</div>
             </div>
             {filters
-              ?.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
-              .map(attribute => (
+              ?.sort((a: any, b: any) => a.attributeType.localeCompare(b.attributeType))
+              .map((attribute: any) => (
                 <Disclosure
                   as="div"
                   key={attribute.attributeType}
@@ -405,7 +399,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                       </h3>
                       <Disclosure.Panel className="pt-6">
                         <div className="space-y-2">
-                          {attribute.trait.map((trait, id) =>
+                          {attribute.trait.map((trait: any, id: any) =>
                             trait.traitCount > 0 ? (
                               <div key={trait.traitType} className="flex items-center">
                                 <input
@@ -437,7 +431,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
       </div>
 
       <div className="lg:ml-64 p-6 space-y-6">
-        {data.assets && collection ? (
+        {pagination.assets && collection ? (
           <>
             <div className="relative w-full h-32 sm:h-40 md:h-60 lg:h-80">
               <Image
@@ -570,9 +564,9 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                     <button
                       type="submit"
                       className={`bg-green-960 rounded h-full w-full ${
-                        data.loading ? 'opacity-50' : ''
+                        pagination.loading ? 'opacity-50' : ''
                       }`}
-                      disabled={data.loading}
+                      disabled={pagination.loading}
                     >
                       Search
                     </button>
@@ -580,14 +574,14 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                 </div>
               </form>
 
-              {data.assets.length < 1 ? (
+              {pagination.assets.length < 1 ? (
                 <div className="h-64 flex items-center justify-center">
                   <div className="text-3xl font-bold">No Assets Found</div>
                 </div>
               ) : null}
 
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {data.loading &&
+                {pagination.loading &&
                   Array.from({ length: 25 }).map((_, i) => (
                     <Skeleton
                       key={i}
@@ -597,8 +591,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                     />
                   ))}
 
-                {!data.loading &&
-                  data.assets.map((asset: any, i: number) => (
+                {!pagination.loading &&
+                  pagination.assets.map((asset: any, i: number) => (
                     <motion.div
                       whileHover={{ y: '-2%' }}
                       key={i}
@@ -645,23 +639,17 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                   ))}
               </div>
 
-              {data.page < data.maxPage ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
-                  <button
-                    className={`bg-green-960 text-green-940 col-start-3 rounded py-3 ${
-                      data.loading ? 'opacity-50' : ''
-                    }`}
-                    disabled={data.loading}
-                    onClick={() => loadMore()}
-                  >
-                    Load More
-                  </button>
-                </div>
-              ) : null}
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalCount={collection.totalSupply}
+                pageSize={25}
+                onPageChange={onPageChange}
+              />
             </div>
 
             <Asset
               isOpen={modal.show}
+              scores={scores ?? []}
               setModal={setShow}
               contractAddress={collection.contractAddress ?? ''}
             />
@@ -686,21 +674,9 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     };
   }
 
-  const attributes = await prisma.attribute.findMany({
-    where: { collection: { slug: collection.slug } },
-    select: {
-      attributeType: true,
-      trait: {
-        select: {
-          traitType: true,
-          traitCount: true,
-        },
-      },
-    },
-  });
-
-  const source = await renderMarkdown(collection.description);
+  const { attributes, scores } = await getAttributes(slug.toLowerCase());
   const { assets, count } = await getAssets(slug.toLowerCase(), 1);
+  const source = await renderMarkdown(collection.description);
 
   return {
     props: {
@@ -708,9 +684,10 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
       attributes:
         attributes.map(attribute => ({
           ...attribute,
-          trait: attribute.trait.map(trait => ({ ...trait, selected: false })),
+          trait: attribute.traits.map(trait => ({ ...trait, selected: false })),
         })) ?? [],
       assets,
+      scores,
       source,
       maxPage: Math.ceil(count / 25) ?? 0,
     },

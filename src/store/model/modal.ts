@@ -6,8 +6,19 @@ export interface IAsset {
   imageUrl: string;
   defaultRank: number;
   defaultScore: number;
+  metadata: { [key: string]: string }[];
+  // traits: {
+  //   attributeType: string;
+  //   traitType: string;
+  //   traitCount: number;
+  //   defaultScore: number;
+  //   percentile: number;
+  // }[];
+}
+
+export interface IScore {
+  attributeType: string;
   traits: {
-    attributeType: string;
     traitType: string;
     traitCount: number;
     defaultScore: number;
@@ -20,6 +31,8 @@ export interface IModal {
   setShow: Action<IModal, boolean>;
   asset: IAsset | null;
   setAsset: Action<IModal, IAsset>;
+  scores: IScore[];
+  setScores: Action<IModal, IScore[]>;
   sortType: string;
   setSortType: Action<IModal, string>;
 }
@@ -33,10 +46,14 @@ const modal: IModal = {
   setAsset: action((state, payload) => {
     state.asset = payload;
   }),
+  scores: [],
+  setScores: action((state, payload) => {
+    state.scores = payload;
+  }),
   sortType: 'score',
   setSortType: action((state, payload) => {
     state.sortType = payload;
-    state.asset?.traits.sort((a, b) => b.defaultScore - a.defaultScore);
+    // state.asset?.traits.sort((a, b) => b.defaultScore - a.defaultScore);
   }),
 };
 

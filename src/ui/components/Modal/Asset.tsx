@@ -1,130 +1,176 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 
 import { useStoreState, useStoreActions } from '@root/store';
 
-interface Props {
-	isOpen: boolean;
-	setModal: (open: boolean) => void;
-	contractAddress: string;
+interface Scores {
+  key: string;
+  value: string;
+  traitCount: number;
+  defaultScore: number;
+  percentile: number;
 }
 
-const Asset: React.FC<Props> = ({ isOpen, setModal, contractAddress }) => {
-	const sortType = useStoreState((state) => state.modal.sortType);
-	const setSortType = useStoreActions((actions) => actions.modal.setSortType);
-	const storeAsset = useStoreState((state) => state.modal.asset);
+interface Props {
+  isOpen: boolean;
+  scores: Scores[];
+  setModal: (open: boolean) => void;
+  contractAddress: string;
+}
 
-	const cancelButtonRef = useRef(null);
+const Asset: React.FC<Props> = ({ isOpen, scores, setModal, contractAddress }) => {
+  const sortType = useStoreState(state => state.modal.sortType);
+  const setSortType = useStoreActions(actions => actions.modal.setSortType);
+  const storeAsset = useStoreState(state => state.modal.asset);
+  // const scores = useStoreState(state => state.modal.scores);
 
-	return (
-		<>
-			<Transition appear show={isOpen} as={Fragment}>
-				<Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setModal(false)}>
-					<div className="min-h-screen px-4 text-center">
-						<Transition.Child
-							as={Fragment}
-							enter="ease-out duration-300"
-							enterFrom="opacity-0"
-							enterTo="opacity-100"
-							leave="ease-in duration-200"
-							leaveFrom="opacity-100"
-							leaveTo="opacity-0"
-						>
-							<Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-						</Transition.Child>
+  const cancelButtonRef = useRef(null);
 
-						<span className="inline-block h-screen align-middle" aria-hidden="true">
-							&#8203;
-						</span>
-						<Transition.Child
-							as={Fragment}
-							enter="ease-out duration-300"
-							enterFrom="opacity-0 scale-95"
-							enterTo="opacity-100 scale-100"
-							leave="ease-in duration-200"
-							leaveFrom="opacity-100 scale-100"
-							leaveTo="opacity-0 scale-95"
-						>
-							<div className="inline-block w-full max-w-2xl p-6 my-10 overflow-hidden text-left align-middle transition-all transform bg-dark-900 shadow-xl rounded">
-								<Dialog.Title as="h3" className="text-xl text-center font-semibold mb-4">
-									{storeAsset?.name}
-								</Dialog.Title>
+  console.log(storeAsset);
 
-								<div className="flex flex-col md:flex-row md:space-x-4 md:space-y-0 space-y-4">
-									<div className="md:block flex flex-col items-center space-y-4">
-										<div className="flex items-center justify-center bg-green-960 text-green-940 rounded px-4 md:px-0 py-1">
-											Rank: <span className="font-bold ml-1">#{storeAsset?.defaultRank}</span>
-										</div>
-										<img style={{ height: 160, width: 160 }} src={storeAsset?.imageUrl} className="rounded" />
-										<div>
-											<a target="_blank" href={`https://opensea.io/assets/${contractAddress}/${storeAsset?.tokenId}`}>
-												<div className="text-sm font-semibold text-center bg-blue-960 py-2 px-4 rounded w-full">View on OpenSea</div>
-											</a>
-										</div>
-									</div>
+  return (
+    <>
+      <Transition appear show={isOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-10 overflow-y-auto"
+          onClose={() => setModal(false)}
+        >
+          <div className="min-h-screen px-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            </Transition.Child>
 
-									<div className="flex flex-1 flex-col space-y-4">
-										<div className="flex flex-1 items-center justify-center space-y-4 sm:space-y-0">
-											<div className="bg-green-960 text-green-940 rounded px-4 py-1">
-												Rarity Score: <span className="font-bold">{storeAsset?.defaultScore.toFixed(2)}</span>
-											</div>
-										</div>
+            <span className="inline-block h-screen align-middle" aria-hidden="true">
+              &#8203;
+            </span>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <div className="inline-block w-full max-w-2xl p-6 my-10 overflow-hidden text-left align-middle transition-all transform bg-dark-900 shadow-xl rounded">
+                <Dialog.Title as="h3" className="text-xl text-center font-semibold mb-4">
+                  {storeAsset?.name}
+                </Dialog.Title>
 
-										<div className="flex flex-row space-x-4">
-											<div className="text-sm underline cursor-pointer font-semibold" onClick={() => setSortType('name')}>
-												Sort By Name
-											</div>
-											<div className="text-sm underline cursor-pointer font-semibold" onClick={() => setSortType('score')}>
-												Sort By Score
-											</div>
-										</div>
+                <div className="flex flex-col md:flex-row md:space-x-4 md:space-y-0 space-y-4">
+                  <div className="md:block flex flex-col items-center space-y-4">
+                    <div className="flex items-center justify-center bg-green-960 text-green-940 rounded px-4 md:px-0 py-1">
+                      Rank: <span className="font-bold ml-1">#{storeAsset?.defaultRank}</span>
+                    </div>
+                    <img
+                      style={{ height: 160, width: 160 }}
+                      src={storeAsset?.imageUrl}
+                      className="rounded"
+                    />
+                    <div>
+                      <a
+                        target="_blank"
+                        href={`https://opensea.io/assets/${contractAddress}/${storeAsset?.tokenId}`}
+                      >
+                        <div className="text-sm font-semibold text-center bg-blue-960 py-2 px-4 rounded w-full">
+                          View on OpenSea
+                        </div>
+                      </a>
+                    </div>
+                  </div>
 
-										<div>
-											<div className="space-y-3">
-												{sortType === 'score'
-													? [...(storeAsset?.traits ?? [])]
-															.sort((a, b) => b.defaultScore - a.defaultScore)
-															.map((trait, i) => (
-																<div key={i} className="flex flex-col space-y-1">
-																	<div className="flex flex-row justify-between">
-																		<div className="font-semibold">{trait.attributeType}</div>
-																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
-																	</div>
-																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
-																		<div>{trait.traitType}</div>
-																		<div className="bg-dark-900 px-4 py-1 rounded w-20 text-center font-bold">{trait.traitCount}</div>
-																	</div>
-																</div>
-															))
-													: null}
+                  <div className="flex flex-1 flex-col space-y-4">
+                    <div className="flex flex-1 items-center justify-center space-y-4 sm:space-y-0">
+                      <div className="bg-green-960 text-green-940 rounded px-4 py-1">
+                        Rarity Score:{' '}
+                        <span className="font-bold">{storeAsset?.defaultScore.toFixed(2)}</span>
+                      </div>
+                    </div>
 
-												{sortType === 'name'
-													? [...(storeAsset?.traits ?? [])]
-															.sort((a, b) => a.attributeType.localeCompare(b.attributeType))
-															.map((trait, i) => (
-																<div key={i} className="flex flex-col space-y-1">
-																	<div className="flex flex-row justify-between">
-																		<div className="font-semibold">{trait.attributeType}</div>
-																		<div className="text-green-940 font-semibold px-2">+{trait.defaultScore.toFixed(2)}</div>
-																	</div>
-																	<div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
-																		<div>{trait.traitType}</div>
-																		<div className="bg-dark-900 px-4 py-1 rounded w-20 text-center font-bold">{trait.traitCount}</div>
-																	</div>
-																</div>
-															))
-													: null}
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</Transition.Child>
-					</div>
-				</Dialog>
-			</Transition>
-		</>
-	);
+                    <div className="flex flex-row space-x-4">
+                      <div
+                        className="text-sm underline cursor-pointer font-semibold"
+                        onClick={() => setSortType('name')}
+                      >
+                        Sort By Name
+                      </div>
+                      <div
+                        className="text-sm underline cursor-pointer font-semibold"
+                        onClick={() => setSortType('score')}
+                      >
+                        Sort By Score
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="space-y-3">
+                        {sortType === 'score'
+                          ? storeAsset?.metadata
+                              .map(m =>
+                                scores.find(s => s.key === m.key && s.value === `${m.value}`)
+                              )
+                              .sort((a, b) => b!.defaultScore - a!.defaultScore)
+                              .map((trait, i) => (
+                                <div key={i} className="flex flex-col space-y-1">
+                                  <div className="flex flex-row justify-between">
+                                    <div className="font-semibold">{trait?.key}</div>
+                                    <div className="text-green-940 font-semibold px-2">
+                                      +{trait?.defaultScore.toFixed(2)}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
+                                    <div>{trait?.value}</div>
+                                    <div className="bg-dark-900 px-4 py-1 rounded w-20 text-center font-bold">
+                                      {trait?.traitCount}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                          : null}
+
+                        {sortType === 'name'
+                          ? storeAsset?.metadata
+                              .map(m =>
+                                scores.find(s => s.key === m.key && s.value === `${m.value}`)
+                              )
+                              .sort((a, b) => a!.key.localeCompare(b!.key))
+                              .map((trait, i) => (
+                                <div key={i} className="flex flex-col space-y-1">
+                                  <div className="flex flex-row justify-between">
+                                    <div className="font-semibold">{trait?.key}</div>
+                                    <div className="text-green-940 font-semibold px-2">
+                                      +{trait?.defaultScore.toFixed(2)}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-row justify-between items-center bg-dark-800 px-2 py-2 rounded">
+                                    <div>{trait?.value}</div>
+                                    <div className="bg-dark-900 px-4 py-1 rounded w-20 text-center font-bold">
+                                      {trait?.traitCount}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                          : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
+    </>
+  );
 };
 
 export default Asset;
