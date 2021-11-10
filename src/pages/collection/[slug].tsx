@@ -258,7 +258,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
   return (
     <>
-      <NextSeo title={`NFTRankings | ${collection.name}`} />
+      <NextSeo title={`NFT Rankings | ${collection.name}`} />
 
       <Navbar />
 

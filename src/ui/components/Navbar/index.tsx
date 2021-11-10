@@ -120,7 +120,7 @@ const Navbar: React.FC = () => {
                   </Link>
                 ))}
               </div>
-              <div className="hidden md:flex flex-row space-x-6">
+              <div className="hidden lg:flex flex-row space-x-6">
                 <Link href="/list">
                   <a className="text-dark-700 hover:text-white font-semibold underline">
                     List your project

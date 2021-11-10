@@ -39,6 +39,7 @@
 	},
 	"devDependencies": {
 		"@types/app-root-path": "^1.2.4",
+		"@types/gtag.js": "^0.0.8",
 		"@types/ioredis": "^4.27.8",
 		"@types/lodash": "^4.14.175",
 		"@types/nprogress": "^0.2.0",
