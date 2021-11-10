@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import prisma from '@root/utils/lib/prisma';
+import prisma from '@root/utils/prisma';
 import { getAssets } from '@root/utils/cache';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res
       .status(200)
-      .json({ success: true, assets, count, page, maxPage: Math.ceil(count / 25) });
+      .json({ success: true, assets, count: count.assets, page, maxPage: count.maxPage });
   } else {
     const filters: any[] = [];
 
@@ -39,13 +39,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: {
           slug,
           metadata: {
-            array_contains: filters,
+            hasEvery: filters,
           },
         },
         select: {
           tokenId: true,
           name: true,
-          imageUrl: true,
+          image: true,
           defaultRank: true,
           defaultScore: true,
           metadata: true,
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: {
           slug,
           metadata: {
-            array_contains: filters,
+            hasEvery: filters,
           },
         },
       }),

@@ -2,40 +2,49 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider             = "mysql"
-  url                  = env("DATABASE_URL")
-  shadowDatabaseUrl    = env("SHADOW_DATABASE_URL")
-  referentialIntegrity = "prisma"
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["referentialIntegrity", "filterJson"]
+  previewFeatures = ["mongoDb", "filterJson"]
 }
 
 model Featured {
-  id           String     @id @default(uuid())
-  slot         Int        @unique
+  id           String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  type         String
+  slot         Int
   active       Boolean    @default(false)
-  updatedAt    DateTime   @updatedAt
-  createdAt    DateTime   @default(now())
-  collectionId String
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String     @db.ObjectId
+  collection   Collection @relation(fields: [collectionId], references: [id])
+}
+
+model Project {
+  id              String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  featured        Boolean  @default(false)
+  image           String
+  name            String
+  description     String
+  price           String
+  supply          Int
+  website         String?
+  discord         String?
+  twitterUsername String?
+  releaseDate     DateTime
 }
 
 model Collection {
-  id                    String      @id @default(uuid())
+  id                    String      @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  blockchain            String
   slug                  String      @unique
-  show                  Boolean     @default(false)
-  contractAddress       String
   name                  String
-  description           String      @db.VarChar(4000)
-  bannerImageUrl        String?
+  description           String
   imageUrl              String?
   largeImageUrl         String?
-  discordUrl            String?
-  externalUrl           String?
-  twitterUsername       String?
+  bannerImageUrl        String?
+  contracts             String[]
+  medias                Json
   oneDayVolume          Float
   oneDayChange          Float
   oneDaySales           Int
@@ -53,76 +62,52 @@ model Collection {
   totalSupply           Int
   numOwners             Int
   averagePrice          Float
-  numReports            Int
-  marketCap             Float?
-  floorPrice            Float?
+  marketCap             Float
   updatedAt             DateTime    @updatedAt
   createdAt             DateTime    @default(now())
-  featureds             Featured[]
   assets                Asset[]
   attributes            Attribute[]
-}
-
-model Upcoming {
-  id              String    @id @default(uuid())
-  featured        Boolean   @default(false)
-  imageUrl        String
-  name            String
-  description     String    @db.VarChar(500)
-  presalePrice    Float?
-  presaleDate     DateTime?
-  price           Float
-  releaseDate     DateTime
-  supply          Int
-  currency        String
-  twitterUsername String?
-  discordUrl      String?
-  externalUrl     String?
-  updatedAt       DateTime  @updatedAt
-  createdAt       DateTime  @default(now())
+  featureds             Featured[]
 }
 
 model Asset {
-  id             String     @id @default(uuid())
+  id             String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
   assetId        String     @unique
   slug           String
   tokenId        String
   name           String
-  imageUrl       String
+  image          String
+  metadata       Json[]
   attributeCount Int
   defaultScore   Float
   defaultRank    Int
-  metadata       Json
-  collectionId   String
-  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  traits         Trait[]
-
-  @@index([slug])
+  collectionId   String     @db.ObjectId
+  collection     Collection @relation(fields: [collectionId], references: [id])
+  traitIds       String[]   @db.Array(ObjectId)
+  traits         Trait[]    @relation(fields: [traitIds])
+  updatedAt      DateTime   @updatedAt
+  createdAt      DateTime   @default(now())
 }
 
 model Attribute {
-  id             String     @id @default(uuid())
-  attributeId    String     @unique
-  attributeType  String
-  attributeCount Int        @default(0)
-  collectionId   String
-  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  traits         Trait[]
-
-  @@index([collectionId])
+  id            String     @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  attributeId   String     @unique
+  attributeType String
+  collectionId  String     @db.ObjectId
+  collection    Collection @relation(fields: [collectionId], references: [id])
+  traits        Trait[]
 }
 
 model Trait {
-  id            String    @id @default(uuid())
+  id            String    @id @default(dbgenerated()) @map("_id") @db.ObjectId
   traitId       String    @unique
   attributeType String
   traitType     String
   traitCount    Int
   percentile    Float
   defaultScore  Float
-  attributeId   String
-  attribute     Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
-  assets        Asset[]
-
-  @@index([attributeId])
+  attributeId   String    @db.ObjectId
+  attribute     Attribute @relation(fields: [attributeId], references: [id])
+  assetIds      String[]  @db.Array(ObjectId)
+  assets        Asset[]   @relation(fields: [assetIds])
 }

@@ -1,10 +1,9 @@
 export interface CollectionCard {
+  blockchain: string;
   name: string;
   slug: string;
   imageUrl: string | null;
   description: string;
   totalSupply: number;
-  externalUrl: string | null;
-  discordUrl: string | null;
-  twitterUsername: string | null;
+  medias?: { [key: string]: string };
 }

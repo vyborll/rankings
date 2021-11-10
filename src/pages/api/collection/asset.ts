@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-import prisma from '@root/utils/lib/prisma';
+import prisma from '@root/utils/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET')
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     select: {
       tokenId: true,
       name: true,
-      imageUrl: true,
+      image: true,
       defaultRank: true,
       defaultScore: true,
       metadata: true,

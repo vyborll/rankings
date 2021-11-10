@@ -22,11 +22,8 @@ const Asset: React.FC<Props> = ({ isOpen, scores, setModal, contractAddress }) =
   const sortType = useStoreState(state => state.modal.sortType);
   const setSortType = useStoreActions(actions => actions.modal.setSortType);
   const storeAsset = useStoreState(state => state.modal.asset);
-  // const scores = useStoreState(state => state.modal.scores);
 
   const cancelButtonRef = useRef(null);
-
-  console.log(storeAsset);
 
   return (
     <>
@@ -73,7 +70,7 @@ const Asset: React.FC<Props> = ({ isOpen, scores, setModal, contractAddress }) =
                     </div>
                     <img
                       style={{ height: 160, width: 160 }}
-                      src={storeAsset?.imageUrl}
+                      src={storeAsset?.image}
                       className="rounded"
                     />
                     <div>

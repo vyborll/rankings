@@ -1,7 +1,8 @@
 import type { GetServerSidePropsContext, InferGetServerSidePropsType, NextPage } from 'next';
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { NextSeo } from 'next-seo';
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import {
   ExternalLinkIcon,
@@ -28,26 +29,10 @@ import Pagination from '@root/ui/components/Pagination';
 
 const components = { ...MarkdownLink };
 
-interface Collection {
-  name: string;
-  description: string;
-  contractAddress: string;
-  externalUrl: string;
-  discordUrl: string;
-  twitterUsername: string;
-  slug: string;
-  bannerImageUrl: string;
-  totalVolume: number;
-  totalSupply: number;
-  sevenDayVolume: number;
-  sevenDaySales: number;
-  numOwners: number;
-}
-
 interface IAsset {
   tokenId: string;
   name: string;
-  imageUrl: string;
+  image: string;
   defaultRank: number;
   defaultScore: number;
   metadata: { [key: string]: string }[];
@@ -59,11 +44,13 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
   assets: initialAssets,
   scores,
   source,
+  count,
+  currentPage,
   maxPage,
 }) => {
   const [pagination, setPagination] = useState({
     loading: false,
-    currentPage: 1,
+    currentPage: currentPage ?? 1,
     maxPage: maxPage ?? 1,
     assets: initialAssets ?? [],
   });
@@ -79,9 +66,14 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
   const setAsset = useStoreActions(actions => actions.modal.setAsset);
 
   const onPageChange = async (page: number): Promise<void> => {
+    console.log(page);
+    console.log(pagination);
+
     if (pagination.loading) return;
-    if (pagination.currentPage >= pagination.maxPage) return;
+    if (page > pagination.maxPage) return;
     if (pagination.currentPage === page) return;
+
+    console.log(page);
 
     setPagination({ ...pagination, currentPage: page, loading: true });
 
@@ -266,6 +258,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
   return (
     <>
+      <NextSeo title={`NFTRankings | ${collection.name}`} />
+
       <Navbar />
 
       <Transition.Root show={mobileFiltersOpen} as={Fragment}>
@@ -443,14 +437,30 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
             <div className="space-y-4">
               <div className="text-3xl font-bold">{collection.name}</div>
+              <div>
+                <div className="flex flex-row items-center">
+                  <span className="flex flex-row items-center bg-dark-800 space-x-1 px-3 py-1 text-sm rounded-sm">
+                    <svg
+                      className="h-3 w-3 fill-current text-green-940"
+                      role="img"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <title>{collection.blockchain}</title>
+                      <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
+                    </svg>
+                    <span className="text-green-940">{collection.blockchain}</span>
+                  </span>
+                </div>
+              </div>
               <div className="text-sm md:text-lg font-light">
                 <MDXRemote {...(source as any)} components={components} />
               </div>
             </div>
 
             <div className="flex flex-row space-x-6">
-              {collection?.externalUrl ? (
-                <Link href={collection.externalUrl}>
+              {collection?.medias?.externalUrl ? (
+                <Link href={collection.medias?.externalUrl}>
                   <a target="_blank" className="text-sm flex flex-row items-center underline">
                     <ExternalLinkIcon className="h-4 w-4 md:h-5 md:w-5 mr-2" />
                     Website
@@ -458,8 +468,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                 </Link>
               ) : null}
 
-              {collection?.twitterUsername ? (
-                <Link href={`https://twitter.com/${collection.twitterUsername}`}>
+              {collection?.medias?.twitterUsername ? (
+                <Link href={`https://twitter.com/${collection.medias.twitterUsername}`}>
                   <a target="_blank" className="text-sm flex flex-row items-center underline">
                     <svg
                       className="h-4 w-4 mr-2 fill-current"
@@ -475,8 +485,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                 </Link>
               ) : null}
 
-              {collection?.discordUrl ? (
-                <Link href={collection.discordUrl}>
+              {collection?.medias?.discordUrl ? (
+                <Link href={collection.medias?.discordUrl}>
                   <a target="_blank" className="text-sm flex flex-row items-center underline">
                     <svg
                       className="h-4 w-4 mr-2 fill-current"
@@ -525,7 +535,8 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
             <div>
               <div className="flex flex-row items-center justify-between mt-14 mb-4">
                 <div className="text-xl md:text-2xl font-semibold">
-                  {collection.totalSupply.toLocaleString()} Total Assets
+                  {count?.assets?.toLocaleString() ?? collection.totalSupply.toLocaleString()} Total
+                  Assets
                 </div>
                 <button
                   className="block lg:hidden"
@@ -585,7 +596,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                   Array.from({ length: 25 }).map((_, i) => (
                     <Skeleton
                       key={i}
-                      className="bg-dark-800 h-72 p-4 rounded space-y-4"
+                      className="bg-dark-800 h-64 p-4 rounded space-y-4"
                       duration={2}
                       count={1}
                     />
@@ -611,7 +622,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                       <div className="flex items-center justify-center">
                         {collection.slug === 'meebits' ? (
                           <img
-                            src={asset.imageUrl}
+                            src={asset.image}
                             style={{
                               height: 160,
                               width: 140,
@@ -620,7 +631,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
                           />
                         ) : (
                           <img
-                            src={asset.imageUrl}
+                            src={asset.image}
                             style={{
                               height: 160,
                               width: 160,
@@ -662,6 +673,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
 export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
   const slug = ctx.params?.slug as string;
+  const page = parseInt((ctx.query?.page as string) ?? '1');
 
   const collection = await getCollection(slug.toLowerCase());
   if (!collection) {
@@ -674,8 +686,8 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
     };
   }
 
+  const { assets, count } = await getAssets(slug.toLowerCase(), page);
   const { attributes, scores } = await getAttributes(slug.toLowerCase());
-  const { assets, count } = await getAssets(slug.toLowerCase(), 1);
   const source = await renderMarkdown(collection.description);
 
   return {
@@ -689,7 +701,9 @@ export const getServerSideProps = async (ctx: GetServerSidePropsContext) => {
       assets,
       scores,
       source,
-      maxPage: Math.ceil(count / 25) ?? 0,
+      count,
+      currentPage: page,
+      maxPage: Math.ceil(count.assets / 25) ?? 0,
     },
   };
 };

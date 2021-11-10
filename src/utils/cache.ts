@@ -1,4 +1,4 @@
-import prisma from '@root/utils/lib/prisma';
+import prisma from '@root/utils/prisma';
 import redis from '@root/utils/redis';
 import { renderMarkdown } from '@root/utils/markdown';
 
@@ -12,12 +12,11 @@ export const getCollections = async () => {
   if (!cached) {
     const collections = await prisma.collection.findMany({
       select: {
+        blockchain: true,
         slug: true,
         name: true,
         description: true,
         imageUrl: true,
-        discordUrl: true,
-        twitterUsername: true,
         oneDayVolume: true,
         oneDayChange: true,
         oneDaySales: true,
@@ -35,9 +34,7 @@ export const getCollections = async () => {
         totalSupply: true,
         numOwners: true,
         averagePrice: true,
-        numReports: true,
         marketCap: true,
-        floorPrice: true,
       },
       orderBy: {
         totalVolume: 'desc',
@@ -57,19 +54,18 @@ export const getFeaturedCollections = async () => {
 
   if (!cached) {
     const featured = await prisma.featured.findMany({
-      where: { active: true },
+      where: { type: 'collection', active: true },
       orderBy: { slot: 'asc' },
       select: {
         collection: {
           select: {
+            blockchain: true,
             slug: true,
             name: true,
             imageUrl: true,
             description: true,
             totalSupply: true,
-            externalUrl: true,
-            discordUrl: true,
-            twitterUsername: true,
+            medias: true,
           },
         },
       },
@@ -91,13 +87,12 @@ export const getLatestCollections = async () => {
       orderBy: { createdAt: 'desc' },
       select: {
         name: true,
+        blockchain: true,
         slug: true,
         imageUrl: true,
         description: true,
         totalSupply: true,
-        externalUrl: true,
-        discordUrl: true,
-        twitterUsername: true,
+        medias: true,
       },
       take: 9,
     });
@@ -125,11 +120,10 @@ export const getCollection = async (slug: string) => {
       where: { slug },
       select: {
         name: true,
+        blockchain: true,
         description: true,
-        contractAddress: true,
-        externalUrl: true,
-        discordUrl: true,
-        twitterUsername: true,
+        contracts: true,
+        medias: true,
         slug: true,
         bannerImageUrl: true,
         imageUrl: true,
@@ -180,7 +174,7 @@ export const getAssets = async (slug: string, page: number) => {
         select: {
           tokenId: true,
           name: true,
-          imageUrl: true,
+          image: true,
           defaultRank: true,
           defaultScore: true,
           metadata: true,
@@ -199,22 +193,33 @@ export const getAssets = async (slug: string, page: number) => {
     if (!assets) {
       return {
         assets: [],
-        count: 0,
+        count: {
+          assets: count,
+          maxPage: Math.ceil(count / 25),
+        },
       };
     }
 
     await redis.set(`${slug}|assets|${page}`, JSON.stringify(assets), 'EX', SIX_HOURS);
-    await redis.set(`${slug}|assets|counts`, count, 'EX', SIX_HOURS);
+    await redis.set(
+      `${slug}|assets|counts`,
+      JSON.stringify({ assets: count, maxPage: Math.ceil(count / 25) }),
+      'EX',
+      SIX_HOURS
+    );
 
     return {
       assets,
-      count,
+      count: {
+        assets: count,
+        maxPage: Math.ceil(count / 25),
+      },
     };
   }
 
   return {
     assets: JSON.parse(cached),
-    count: parseInt(cachedCount ?? '0'),
+    count: JSON.parse(cachedCount),
   };
 };
 

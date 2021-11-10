@@ -3,17 +3,10 @@ import { Action, action } from 'easy-peasy';
 export interface IAsset {
   tokenId: string;
   name: string;
-  imageUrl: string;
+  image: string;
   defaultRank: number;
   defaultScore: number;
   metadata: { [key: string]: string }[];
-  // traits: {
-  //   attributeType: string;
-  //   traitType: string;
-  //   traitCount: number;
-  //   defaultScore: number;
-  //   percentile: number;
-  // }[];
 }
 
 export interface IScore {
