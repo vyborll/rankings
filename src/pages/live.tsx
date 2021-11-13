@@ -112,7 +112,7 @@ export const Collection: React.FC<CollectionProps> = ({
             <div className="text-sm md:text-lg font-bold">{name}</div>
             <div className="flex flex-row items-center">
               <div>
-                <a href={`https://opensea.io/collection/${slug}`} target="_blank">
+                <a href={`https://opensea.io/collection/${slug}`} target="_blank" rel="noreferrer">
                   <svg
                     className="h-5 w-5 mr-2"
                     xmlns="http://www.w3.org/2000/svg"
@@ -137,14 +137,18 @@ export const Collection: React.FC<CollectionProps> = ({
               </div>
               {medias?.externalUrl && (
                 <div>
-                  <a href={medias.externalUrl} target="_blank">
+                  <a href={medias.externalUrl} target="_blank" rel="noreferrer">
                     <GlobeAltIcon className="h-5 w-5 mr-2 text-gray-300" />
                   </a>
                 </div>
               )}
               {medias?.twitterUsername && (
                 <div>
-                  <a href={`https://twitter.com/${medias.twitterUsername}`} target="_blank">
+                  <a
+                    href={`https://twitter.com/${medias.twitterUsername}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <svg
                       className="h-4 w-4 mr-2 fill-current text-gray-300"
                       role="img"
@@ -159,7 +163,7 @@ export const Collection: React.FC<CollectionProps> = ({
               )}
               {medias?.discordUrl && (
                 <div>
-                  <a href={medias.discordUrl} target="_blank">
+                  <a href={medias.discordUrl} target="_blank" rel="noreferrer">
                     <svg
                       className="h-4 w-4 mr-2 fill-current text-gray-300"
                       role="img"
@@ -173,7 +177,11 @@ export const Collection: React.FC<CollectionProps> = ({
                 </div>
               )}
               <div>
-                <a href={`https://etherscan.io/address/${contract}`} target="_blank">
+                <a
+                  href={`https://etherscan.io/address/${contract}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <ExternalLinkIcon className="h-5 w-5 mr-2 text-gray-300" />
                 </a>
               </div>
