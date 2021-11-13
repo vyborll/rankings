@@ -17,7 +17,7 @@ model Featured {
   slot         Int
   active       Boolean    @default(false)
   collectionId String     @db.ObjectId
-  collection   Collection @relation(fields: [collectionId], references: [id])
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 }
 
 model Project {
@@ -36,6 +36,7 @@ model Project {
 
 model Collection {
   id                    String      @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  show                  Boolean     @default(false)
   blockchain            String
   slug                  String      @unique
   name                  String
@@ -63,6 +64,7 @@ model Collection {
   numOwners             Int
   averagePrice          Float
   marketCap             Float
+  floorPrice            Float?
   updatedAt             DateTime    @updatedAt
   createdAt             DateTime    @default(now())
   assets                Asset[]
@@ -82,9 +84,9 @@ model Asset {
   defaultScore   Float
   defaultRank    Int
   collectionId   String     @db.ObjectId
-  collection     Collection @relation(fields: [collectionId], references: [id])
+  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   traitIds       String[]   @db.Array(ObjectId)
-  traits         Trait[]    @relation(fields: [traitIds])
+  traits         Trait[]    @relation(fields: [traitIds], onDelete: Cascade)
   updatedAt      DateTime   @updatedAt
   createdAt      DateTime   @default(now())
 }
@@ -94,7 +96,7 @@ model Attribute {
   attributeId   String     @unique
   attributeType String
   collectionId  String     @db.ObjectId
-  collection    Collection @relation(fields: [collectionId], references: [id])
+  collection    Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   traits        Trait[]
 }
 
@@ -107,7 +109,32 @@ model Trait {
   percentile    Float
   defaultScore  Float
   attributeId   String    @db.ObjectId
-  attribute     Attribute @relation(fields: [attributeId], references: [id])
+  attribute     Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   assetIds      String[]  @db.Array(ObjectId)
-  assets        Asset[]   @relation(fields: [assetIds])
+  assets        Asset[]   @relation(fields: [assetIds], onDelete: Cascade)
+}
+
+model MintCollection {
+  id             String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  contract       String   @unique
+  name           String
+  description    String?
+  slug           String
+  imageUrl       String?
+  largeImageUrl  String?
+  bannerImageUrl String?
+  medias         Json
+  mints          Mint[]
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
+model Mint {
+  id           String         @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  txHash       String
+  eth          Float
+  gas          Float
+  collectionId String         @db.ObjectId
+  collection   MintCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
 }

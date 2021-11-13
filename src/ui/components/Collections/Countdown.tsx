@@ -133,7 +133,7 @@ const Countdown: React.FC<Props> = ({
             </>
           ) : (
             <div className="text-lg text-center font-bold bg-dark-900 rounded py-2 text-green-940">
-              Live!
+              Released!
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ export const getCollections = async () => {
 
   if (!cached) {
     const collections = await prisma.collection.findMany({
+      where: { show: true },
       select: {
         blockchain: true,
         slug: true,
@@ -84,6 +85,7 @@ export const getLatestCollections = async () => {
 
   if (!cached) {
     const latest = await prisma.collection.findMany({
+      where: { show: true },
       orderBy: { createdAt: 'desc' },
       select: {
         name: true,

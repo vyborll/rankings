@@ -1,16 +1,19 @@
 import type { InferGetServerSidePropsType, NextPage } from 'next';
 import Link from 'next/link';
-import moment from 'moment-timezone';
+import useSWR from 'swr';
 
 import prisma from '@root/utils/prisma';
+
+import fetcher from '@root/lib/fetcher';
 
 import Layout from '@root/ui/components/Layout';
 import Countdown from '@root/ui/components/Collections/Countdown';
 
 const Upcoming: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({
   featured,
-  projects,
 }) => {
+  const { data } = useSWR('/api/drops/get', fetcher);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -34,7 +37,7 @@ const Upcoming: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>>
         </div>
       </div>
 
-      {projects.length < 1 && featured.length < 1 ? (
+      {data && data.projects && data.projects.length < 1 && featured.length < 1 ? (
         <div className="flex items-center justify-center h-96">
           <div className="text-3xl font-bold">No Upcoming Drops Found</div>
         </div>
@@ -45,9 +48,11 @@ const Upcoming: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>>
       ))}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((drop, i: number) => (
-          <Countdown key={i} featured={false} {...drop} />
-        ))}
+        {data &&
+          data.projects &&
+          data.projects.map((drop: any, i: number) => (
+            <Countdown key={i} featured={false} {...drop} />
+          ))}
       </div>
     </Layout>
   );
@@ -70,30 +75,9 @@ export const getServerSideProps = async () => {
     },
   });
 
-  const projects = await prisma.project.findMany({
-    where: {
-      featured: false,
-      releaseDate: {
-        gte: moment.utc().startOf('day').toISOString(),
-      },
-    },
-    select: {
-      name: true,
-      image: true,
-      description: true,
-      price: true,
-      supply: true,
-      website: true,
-      discord: true,
-      twitterUsername: true,
-      releaseDate: true,
-    },
-  });
-
   return {
     props: {
       featured,
-      projects,
     },
   };
 };
