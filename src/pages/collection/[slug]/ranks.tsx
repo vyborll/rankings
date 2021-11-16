@@ -652,7 +652,7 @@ const Slug: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 
               <Pagination
                 currentPage={pagination.currentPage}
-                totalCount={collection.totalSupply}
+                totalCount={count.assets}
                 pageSize={25}
                 onPageChange={onPageChange}
               />

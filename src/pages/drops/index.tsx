@@ -25,6 +25,11 @@ const Upcoming: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>>
 
         <div className="max-w-3xl mx-auto text-center space-y-2">
           <div>
+            Disclaimer: All information on this page is not investment or financial advise. Please
+            do your own research for information about all the projects below as we can&apos;t
+            guarantee that they are accurate or trusted.
+          </div>
+          <div className="text-gray-300">
             You can submit your upcoming NFT project to be listed on the &quot;Upcoming NFT
             Drops&quot; page for free. Just fill out the form below with all the required
             information for it to be listed.

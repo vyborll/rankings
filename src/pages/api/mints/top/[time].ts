@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import prisma from '@root/utils/prisma';
 
-const times = ['1m', '5m', '10m', '30m', '1h', '6h'];
+const times = ['5m', '10m', '30m', '1h', '6h'];
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { time } = req.query;
@@ -14,9 +14,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let startDate: string = '';
 
   switch (time) {
-    case '1m':
-      startDate = moment.utc().subtract('2', 'minutes').toISOString();
-      break;
     case '5m':
       startDate = moment.utc().subtract('5', 'minutes').toISOString();
       break;
@@ -35,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const collections = await prisma.mintCollection.findMany({
     where: {
+      show: true,
       mints: {
         some: {
           createdAt: {
@@ -58,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         select: {
           eth: true,
-          gas: true,
           createdAt: true,
         },
       },
@@ -68,12 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const format = await Promise.all(
     collections.map(async collection => {
       const eth = collection.mints.reduce((prev, transaction) => prev + transaction.eth, 0);
-      const gas = collection.mints.reduce((prev, transaction) => prev + transaction.gas, 0);
 
       return {
         ...collection,
         eth,
-        gas,
       };
     })
   );

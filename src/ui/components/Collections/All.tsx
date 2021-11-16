@@ -2,15 +2,30 @@ import Link from 'next/link';
 
 interface Props {
   collections: {
+    blockchain: string;
     name: string;
     slug: string;
-    imageUrl: string;
+    description: string;
+    imageUrl: string | null;
+    medias: any;
+    oneDayVolume: number;
+    oneDayChange: number;
+    oneDaySales: number;
+    oneDayAveragePrice: number;
     sevenDayVolume: number;
+    sevenDayChange: number;
     sevenDaySales: number;
+    sevenDayAveragePrice: number;
+    thirtyDayVolume: number;
+    thirtyDayChange: number;
+    thirtyDayAveragePrice: number;
     totalVolume: number;
     totalSales: number;
     totalSupply: number;
     numOwners: number;
+    averagePrice: number;
+    marketCap: number;
+    createdAt: Date;
   }[];
 }
 
@@ -81,7 +96,7 @@ const AllCollections: React.FC<Props> = ({ collections }) => {
                   </tr>
                 </thead>
                 <tbody className="bg-dark-800 divide-y divide-divider-900">
-                  {collections.map((collection, i) => (
+                  {collections.map((collection: any, i: number) => (
                     <tr key={i}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-xs">{i + 1}</div>

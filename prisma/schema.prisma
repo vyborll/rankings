@@ -116,6 +116,7 @@ model Trait {
 
 model MintCollection {
   id             String   @id @default(dbgenerated()) @map("_id") @db.ObjectId
+  show           Boolean  @default(false)
   contract       String   @unique
   name           String
   description    String?
@@ -133,7 +134,6 @@ model Mint {
   id           String         @id @default(dbgenerated()) @map("_id") @db.ObjectId
   txHash       String
   eth          Float
-  gas          Float
   collectionId String         @db.ObjectId
   collection   MintCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())

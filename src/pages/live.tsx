@@ -1,11 +1,11 @@
 import type { NextPage } from 'next';
 import { useState } from 'react';
 import { GlobeAltIcon, ExternalLinkIcon } from '@heroicons/react/outline';
+import Skeleton from 'react-loading-skeleton';
 import useSWR from 'swr';
 import cn from 'classnames';
 
 import fetcher from '@root/lib/fetcher';
-import web3 from '@root/lib/web3';
 
 import Layout from '@root/ui/components/Layout';
 
@@ -17,17 +17,15 @@ interface CollectionProps {
   bannerImageUrl: string;
   medias: any;
   eth: number;
-  gas: number;
   mints: Mint[];
 }
 
 interface Mint {
   eth: number;
-  gas: number;
   createdAt: Date;
 }
 
-type TimeFrame = '1m' | '5m' | '10m' | '30m' | '1h' | '6h';
+type TimeFrame = '5m' | '10m' | '30m' | '1h' | '6h';
 
 const Live: NextPage = () => {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('5m');
@@ -46,6 +44,8 @@ const Live: NextPage = () => {
     }
   };
 
+  console.log(data);
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto">
@@ -58,7 +58,7 @@ const Live: NextPage = () => {
 
         <div className="mt-14 space-y-4">
           <div className="flex flex-1 justify-end space-x-2">
-            {['1m', '5m', '10m', '30m', '1h', '6h'].map((time, idx) => (
+            {['5m', '10m', '30m', '1h', '6h'].map((time, idx) => (
               <button
                 key={idx}
                 className={cn('px-4 py-1 rounded text-sm', {
@@ -71,6 +71,14 @@ const Live: NextPage = () => {
               </button>
             ))}
           </div>
+
+          {!data || !data.collections
+            ? Array.from({ length: 10 }).map((_, idx) => (
+                <div key={idx}>
+                  <Skeleton className="h-28" key={idx} count={1} duration={1} />
+                </div>
+              ))
+            : null}
 
           {data &&
             data.collections &&
@@ -92,7 +100,6 @@ export const Collection: React.FC<CollectionProps> = ({
   medias,
   mints,
   eth,
-  gas,
 }) => {
   return (
     <div className="bg-dark-800 p-4 rounded relative hover:shadow-lg z-1">
@@ -177,11 +184,7 @@ export const Collection: React.FC<CollectionProps> = ({
                 </div>
               )}
               <div>
-                <a
-                  href={`https://etherscan.io/address/${contract}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a href={`https://etherscan.io/token/${contract}`} target="_blank" rel="noreferrer">
                   <ExternalLinkIcon className="h-5 w-5 mr-2 text-gray-300" />
                 </a>
               </div>
@@ -193,21 +196,6 @@ export const Collection: React.FC<CollectionProps> = ({
           <div className="flex flex-1 flex-col items-center">
             <div className="text-sm md:text-base lg:text-lg text-gray-300">Mints</div>
             <div className="font-bold text-md lg:text-lg">{mints.length}</div>
-          </div>
-          <div className="flex flex-1 flex-col items-center">
-            <div className="text-sm md:text-base lg:text-lg text-gray-300">Spent on Gas</div>
-            <div className="flex flex-row items-center font-bold text-md lg:text-lg">
-              <svg
-                className="h-3 w-3 md:h-4 md:w-4 fill-current text-gray-200 mr-1"
-                role="img"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <title>Ethereum</title>
-                <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
-              </svg>
-              {parseFloat(web3.utils.fromWei(gas.toString(), 'ether')).toFixed(3)}
-            </div>
           </div>
           <div className="flex flex-1 flex-col items-center">
             <div className="text-sm md:text-base lg:text-lg text-gray-300">Spent on NFT</div>

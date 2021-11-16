@@ -16,7 +16,7 @@ const List: NextPage = () => {
           <div className="text-2xl font-semibold">Listing:</div>
           <div>
             Currently the listing fee is{' '}
-            <span className="text-green-940 border-b border-green-940">0.5 ETH</span> per project
+            <span className="text-green-940 border-b border-green-940">0.25 ETH</span> per project
             with rankings. This will help us pay for the server costs and maintain the service we
             are providing to the community.
           </div>

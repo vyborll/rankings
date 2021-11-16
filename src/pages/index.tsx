@@ -1,14 +1,15 @@
 import type { InferGetServerSidePropsType, NextPage } from 'next';
 
-import { getFeaturedCollections, getCollections, getLatestCollections } from '@root/utils/cache';
+import prisma from '@root/utils/prisma';
 
 import Layout from '@root/ui/components/Layout';
 import Card from '@root/ui/components/Collections/Card';
 import AllCollections from '@root/ui/components/Collections/All';
+import { renderMarkdown } from '@root/utils/markdown';
 
 const Home: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = ({
-  featured,
   collections,
+  featured,
   latest,
 }) => {
   return (
@@ -34,15 +35,74 @@ const Home: NextPage<InferGetServerSidePropsType<typeof getServerSideProps>> = (
 };
 
 export const getServerSideProps = async () => {
-  const collections = await getCollections();
-  const featured = await getFeaturedCollections();
-  const latest = await getLatestCollections();
+  const collections = await prisma.collection.findMany({
+    where: { show: true },
+    select: {
+      blockchain: true,
+      slug: true,
+      name: true,
+      description: true,
+      imageUrl: true,
+      medias: true,
+      oneDayVolume: true,
+      oneDayChange: true,
+      oneDaySales: true,
+      oneDayAveragePrice: true,
+      sevenDayVolume: true,
+      sevenDayChange: true,
+      sevenDaySales: true,
+      sevenDayAveragePrice: true,
+      thirtyDayVolume: true,
+      thirtyDayChange: true,
+      thirtyDaySales: true,
+      thirtyDayAveragePrice: true,
+      totalVolume: true,
+      totalSales: true,
+      totalSupply: true,
+      numOwners: true,
+      averagePrice: true,
+      marketCap: true,
+      createdAt: true,
+    },
+    orderBy: {
+      totalVolume: 'desc',
+    },
+  });
+
+  const featured = await prisma.featured.findMany({
+    where: { type: 'collection', active: true },
+    orderBy: { slot: 'asc' },
+    select: {
+      collection: {
+        select: {
+          blockchain: true,
+          slug: true,
+          name: true,
+          imageUrl: true,
+          description: true,
+          totalSupply: true,
+          medias: true,
+        },
+      },
+    },
+  });
+
+  const latest = collections
+    .sort((a: any, b: any) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    .slice(0, 9);
+
+  const format = await Promise.all(
+    latest.map(async (collection: any) => ({
+      ...collection,
+      description: await renderMarkdown(collection.description),
+    }))
+  );
 
   return {
     props: {
       collections,
       featured,
-      latest,
+      latest: format,
     },
   };
 };

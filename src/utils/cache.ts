@@ -18,6 +18,7 @@ export const getCollections = async () => {
         name: true,
         description: true,
         imageUrl: true,
+        medias: true,
         oneDayVolume: true,
         oneDayChange: true,
         oneDaySales: true,
@@ -36,6 +37,7 @@ export const getCollections = async () => {
         numOwners: true,
         averagePrice: true,
         marketCap: true,
+        createdAt: true,
       },
       orderBy: {
         totalVolume: 'desc',
