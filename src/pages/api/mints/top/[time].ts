@@ -56,6 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         select: {
           eth: true,
+          count: true,
           createdAt: true,
         },
       },

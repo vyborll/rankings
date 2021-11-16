@@ -22,6 +22,7 @@ interface CollectionProps {
 
 interface Mint {
   eth: number;
+  count: number;
   createdAt: Date;
 }
 
@@ -195,7 +196,9 @@ export const Collection: React.FC<CollectionProps> = ({
         <div className="flex flex-1 flex-row items-center">
           <div className="flex flex-1 flex-col items-center">
             <div className="text-sm md:text-base lg:text-lg text-gray-300">Mints</div>
-            <div className="font-bold text-md lg:text-lg">{mints.length}</div>
+            <div className="font-bold text-md lg:text-lg">
+              {mints.reduce((prev, transaction) => prev + transaction.count, 0)}
+            </div>
           </div>
           <div className="flex flex-1 flex-col items-center">
             <div className="text-sm md:text-base lg:text-lg text-gray-300">Spent on NFT</div>

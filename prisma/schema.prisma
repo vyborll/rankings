@@ -134,6 +134,7 @@ model Mint {
   id           String         @id @default(dbgenerated()) @map("_id") @db.ObjectId
   txHash       String
   eth          Float
+  count        Int
   collectionId String         @db.ObjectId
   collection   MintCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())
