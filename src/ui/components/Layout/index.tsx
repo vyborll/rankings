@@ -10,8 +10,11 @@ const Layout: React.FC<Props> = ({ title, description, children }) => {
   return (
     <>
       <NextSeo
-        title={title ?? 'NFT Rankings | View NFT Rankings and Upcoming NFT Drops'}
-        description={description ?? 'View NFT rankings, rarities, and upcoming NFT drops.'}
+        title={title ?? 'NFT Rankings | NFT rankings, live mints, and data'}
+        description={
+          description ??
+          'View NFT rankings along with their data. See what projects are being minted in real time.'
+        }
       />
 
       <Navbar />
